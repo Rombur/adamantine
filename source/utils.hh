@@ -8,6 +8,8 @@
 #ifndef UTILS_HH
 #define UTILS_HH
 
+#include <deal.II/base/cuda.h>
+
 #include <cassert>
 #include <exception>
 #include <stdexcept>
@@ -15,6 +17,53 @@
 
 namespace adamantine
 {
+#ifdef __CUDACC__
+#define ADAMANTINE_HOST_DEV __host__ __device__
+#else
+#define ADAMANTINE_HOST_DEV
+#endif
+
+template <typename Number, typename MemorySpaceType>
+struct Memory
+{
+  static Number *allocate_data(const std::size_t size);
+
+  static void delete_data(Number *device_ptr) noexcept;
+};
+
+template <typename Number>
+struct Memory<Number, dealii::MemorySpace::Host>
+{
+  static Number *allocate_data(const std::size_t size)
+  {
+    Number *data_ptr = new Number[size];
+    return data_ptr;
+  }
+
+  static void delete_device_data(Number *data_ptr) noexcept
+  {
+    delete[] data_ptr;
+  }
+};
+
+#ifdef __CUDACC__
+template <typename Number>
+struct Memory<Number, dealii::MemorySpace::CUDA>
+{
+  static Number *allocate_data(const std::size_t size)
+  {
+    Number *data_ptr;
+    dealii::Utilities::CUDA::malloc(data_ptr, size);
+    return data_ptr;
+  }
+
+  static void delete_data(Number *data_ptr) noexcept
+  {
+    const cudaError_t error_code = cudaFree(data_ptr);
+    dealii::AssertNothrowCuda(error_code);
+  }
+};
+#endif
 
 inline void ASSERT(bool cond, std::string const &message)
 {
