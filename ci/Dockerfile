@@ -2,7 +2,7 @@ ARG BASE=nvidia/cuda:11.7.1-devel-ubuntu22.04
 FROM $BASE
 
 ARG N_PROCS=8
-ARG CUDA=ON
+ARG CUDA=OFF
 ARG CLANG=OFF
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -12,7 +12,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
       clang-format \
       clang \
       build-essential \
-      cmake \
+      bash-completion \
+      gdb \
       wget \
       curl \
       libcurl4-gnutls-dev \
@@ -26,6 +27,10 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
       libpfm4-dev \
       libunwind-dev \
       libgmp-dev \
+      python3-dev \
+      python3-setuptools \
+      vim-nox \
+      ninja-build \
       && \
       apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -117,7 +122,7 @@ RUN export BOOST_VERSION=1.80.0 && \
     then \
     ./bootstrap.sh --with-toolset=clang --prefix=${BOOST_INSTALL_DIR}; \
     else \
-    ./bootstrap.sh --prefix=${BOOST_INSTALL_DIR}; \
+    ./bootstrap.sh --with-python=python3 --prefix=${BOOST_INSTALL_DIR}; \
     fi && \
     echo "using mpi ;" >> project-config.jam && \
     ./b2 -j${N_PROCS}\
@@ -235,7 +240,7 @@ RUN export TRILINOS_HASH=0976cf2a8f9ee2991f4fb479f1056ca569eb22b9 && \
         -DTrilinos_ENABLE_Kokkos=ON \
         -DTrilinos_ENABLE_ML=ON \
         -DTrilinos_ENABLE_SEACAS=ON \
-        -DTrilinos_ENABLE_Sacado=ON \
+        -DTrilinos_ENABLE_Sacado=OFF \
         -DTrilinos_ENABLE_EXPLICIT_INSTANTIATION=ON \
         -DBLAS_LIBRARY_NAMES="openblas" \
         -DBLAS_LIBRARY_DIRS=${OPENBLAS_DIR}/lib \
@@ -330,9 +335,9 @@ RUN export ARBORX_HASH=77e055395c9550cb42e5b90156ba659f060bd852 && \
     rm -rf ${ARBORX_SOURCE_DIR}
 ENV ARBORX_DIR=${INSTALL_DIR}/arborx
 
-# Install deal.II 
-RUN export DEAL_II_HASH=89664dc696d6e5d6d15f40b26fcb902a5baa2d7e && \
-    export DEAL_II_URL=https://github.com/dealii/dealii/archive/${DEAL_II_HASH}.tar.gz && \
+# Install deal.II sns_2023_08
+RUN export DEAL_II_HASH=6d3104e80e73958d653e0294f32790f07ff74439 && \
+    export DEAL_II_URL=https://github.com/Rombur/dealii/archive/${DEAL_II_HASH}.tar.gz && \
     export DEAL_II_ARCHIVE=${ARCHIVE_DIR}/dealii.tar.gz && \
     export DEAL_II_SOURCE_DIR=${SOURCE_DIR}/dealii && \
     export DEAL_II_BUILD_DIR=${BUILD_DIR}/dealii && \
@@ -358,13 +363,48 @@ RUN export DEAL_II_HASH=89664dc696d6e5d6d15f40b26fcb902a5baa2d7e && \
         -DARBORX_DIR=${ARBORX_DIR} \
         -DDEAL_II_WITH_TRILINOS=ON \
         -DTRILINOS_DIR=${TRILINOS_DIR} \
-        -DDEAL_II_TRILINOS_WITH_SACADO=ON \
+        -DDEAL_II_TRILINOS_WITH_SACADO=OFF \
         -DDEAL_II_TRILINOS_WITH_SEACAS=ON \
         -DDEAL_II_COMPONENT_EXAMPLES=OFF \
+        -DDEAL_II_COMPONENT_PYTHON_BINDINGS=ON \
         -DCMAKE_INSTALL_PREFIX=${DEAL_II_INSTALL_DIR} \
         ${DEAL_II_SOURCE_DIR}  && \
-    make -j${N_PROCS} install && \
-    rm -rf ${DEAL_II_ARCHIVE} && \
-    rm -rf ${DEAL_II_BUILD_DIR} 
+    make -j3 install
 # We keep the source file for debugging purpose
 ENV DEAL_II_DIR=${INSTALL_DIR}/dealii
+ENV PYTHONPATH=${DEAL_II_DIR}/python3.10/site-packages
+ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+
+RUN cd /home && git clone https://github.com/Rombur/adamantine && \
+    cd adamantine && git checkout sns_2023_08 && \
+    mkdir build && cd build && \
+    cmake \
+      -DDEAL_II_DIR=${DEAL_II_DIR} \
+      -DCMAKE_BUILD_TYPE=Release\
+      -DCMAKE_CXX_FLAGS="-g" \
+      -DADAMANTINE_ENABLE_CALIPER=ON \
+    ../ && \
+    make && mv bin ../
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    build-essential \
+    wget \
+    git \
+    bc \
+    ccache \
+    ninja-build \
+    git \
+    vim-nox \
+    python3-dev \
+    gdb \
+    fish \
+    && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Configure vim
+RUN cd /root && mkdir .undo && git clone https://github.com/Rombur/vim_config && \
+    ln -s vim_config/.vimrc && ln -s vim_config/.vim && \
+    vim +PluginInstall +qall && echo 'set encoding=utf-8' >> .vimrc && \
+    echo 'set t_ut=' >> .vimrc && \
+    cd /root/vim_config/.vim/bundle/youcompleteme && \
+    ./install.py --force-sudo --clangd-completer
