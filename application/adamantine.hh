@@ -1087,10 +1087,10 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
                            time - eps) -
           deposition_times.begin();
       activation_time_end =
-          std::min(time + std::max(activation_time, time_step), duration);
+          std::min(time + std::max(activation_time, time_step), duration) - eps;
       auto activation_end =
           std::lower_bound(deposition_times.begin(), deposition_times.end(),
-                           activation_time_end - eps) -
+                           activation_time_end) -
           deposition_times.begin();
       if (activation_start < activation_end)
       {
