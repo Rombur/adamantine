@@ -261,8 +261,8 @@ void PostProcessor<dim>::write_pvtu(unsigned int cycle, unsigned int time_step,
   _data_out.build_patches(_additional_output_refinement);
   std::string local_filename =
       _filename_prefix + "." + dealii::Utilities::int_to_string(cycle, 2) +
-      "." + dealii::Utilities::int_to_string(time_step, 6) + "." +
-      dealii::Utilities::int_to_string(subdomain_id, 6);
+      "." + dealii::Utilities::to_string(time_step) + "." +
+      dealii::Utilities::to_string(subdomain_id, 6);
   std::ofstream output((local_filename + ".vtu").c_str());
   dealii::DataOutBase::VtkFlags flags(time, cycle);
   _data_out.set_flags(flags);
@@ -278,13 +278,13 @@ void PostProcessor<dim>::write_pvtu(unsigned int cycle, unsigned int time_step,
     {
       std::string local_name =
           _filename_prefix + "." + dealii::Utilities::int_to_string(cycle, 2) +
-          "." + dealii::Utilities::int_to_string(time_step, 6) + "." +
+          "." + dealii::Utilities::to_string(time_step) + "." +
           dealii::Utilities::int_to_string(i, 6) + ".vtu";
       filenames.push_back(local_name);
     }
     std::string pvtu_filename =
         _filename_prefix + "." + dealii::Utilities::int_to_string(cycle, 2) +
-        "." + dealii::Utilities::int_to_string(time_step, 6) + ".pvtu";
+        "." + dealii::Utilities::to_string(time_step) + ".pvtu";
     std::ofstream pvtu_output(pvtu_filename.c_str());
     _data_out.write_pvtu_record(pvtu_output, filenames);
 
