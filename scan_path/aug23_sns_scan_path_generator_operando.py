@@ -92,7 +92,7 @@ def layer_2L1R(xmin, xmax, ymin, ymax, z, velocity, dwell, weld_on_off_dwell, in
     
     return os0 + " \n" + os1 + "\n" + os4 + "\n" + os5 + "\n" + os7 + "\n", layer_time
 
-v = 0.003935
+v = 0.003871
 xmin_loc = 27.0e-3
 xmax_loc = 127.0e-3
 ymin_loc = 4.75e-3
