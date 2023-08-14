@@ -30,10 +30,10 @@ experiment
   format ray
   data_columns 1,2,3,4
   first_frame 0
-  last_frame 0
-  first_camera_id 1
-  last_camera_id 1
-  first_frame_temporal_offset 124.0
+  last_frame 47
+  first_camera_id 0
+  last_camera_id 0
+  first_frame_temporal_offset 87.66623611469905
   estimated_uncertainty 5.0
   output_experiment_on_mesh true
 }
@@ -48,7 +48,7 @@ data_assimilation
   {
     max_number_of_temp_vectors 10
     convergence_tolerance 1.0e-4
-    max_iterations 1000
+    max_iterations 10000
   }
 }
 
