@@ -91,7 +91,7 @@ materials
       thermal_conductivity_x 38.0 ; [W/m K]
       thermal_conductivity_y 38.0 ; [W/m K]
       thermal_conductivity_z 38.0 ; [W/m K]
-      convection_heat_transfer_coef 1 ; [W/(m^2*K)]
+      convection_heat_transfer_coef 0.5 ; [W/(m^2*K)]
       emissivity 0.2
     }
 
@@ -102,7 +102,7 @@ materials
       thermal_conductivity_x 0.38 ; [W/m K]
       thermal_conductivity_y 0.38 ; [W/m K]
       thermal_conductivity_z 0.38 ; [W/m K]
-      convection_heat_transfer_coef 1 ; [W/(m^2*K)]
+      convection_heat_transfer_coef 0.5 ; [W/(m^2*K)]
       emissivity 0.2
     }
 
@@ -113,7 +113,7 @@ materials
       thermal_conductivity_x 38.0 ; [W/m k]
       thermal_conductivity_y 38.0 ; [W/m k]
       thermal_conductivity_z 38.0 ; [W/m k]
-      convection_heat_transfer_coef 1 ; [W/(m^2*K)]
+      convection_heat_transfer_coef 0.5 ; [W/(m^2*K)]
       emissivity 0.2
       ; Not all three states need to define the same properties or to exist
     }
