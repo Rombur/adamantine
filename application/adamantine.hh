@@ -184,7 +184,7 @@ template <int dim, typename MemorySpaceType,
 dealii::Vector<float> estimate_error(
     dealii::parallel::distributed::Triangulation<dim> const &triangulation,
     dealii::DoFHandler<dim> const &dof_handler, int fe_degree,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> const &solution)
+    dealii::LA::distributed::Vector<double, MemorySpaceType> const &field)
 {
   dealii::Vector<float> estimated_error_per_cell(
       triangulation.n_active_cells());
@@ -192,7 +192,7 @@ dealii::Vector<float> estimate_error(
       dof_handler, dealii::QGauss<dim - 1>(fe_degree + 1),
       std::map<dealii::types::boundary_id,
                const dealii::Function<dim, double> *>(),
-      solution, estimated_error_per_cell, dealii::ComponentMask(), nullptr, 0,
+      field, estimated_error_per_cell, dealii::ComponentMask(), nullptr, 0,
       triangulation.locally_owned_subdomain());
 
   return estimated_error_per_cell;
@@ -206,19 +206,19 @@ template <int dim, typename MemorySpaceType,
 dealii::Vector<float> estimate_error(
     dealii::parallel::distributed::Triangulation<dim> const &triangulation,
     dealii::DoFHandler<dim> const &dof_handler, int fe_degree,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> const &solution)
+    dealii::LA::distributed::Vector<double, MemorySpaceType> const &field)
 {
-  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-      solution_host(solution.get_partitioner());
-  solution_host.import(solution, dealii::VectorOperation::insert);
+  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> field_host(
+      field.get_partitioner());
+  field_host.import(field, dealii::VectorOperation::insert);
   dealii::Vector<float> estimated_error_per_cell(
       triangulation.n_active_cells());
   dealii::KellyErrorEstimator<dim>::estimate(
       dof_handler, dealii::QGauss<dim - 1>(fe_degree + 1),
       std::map<dealii::types::boundary_id,
                const dealii::Function<dim, double> *>(),
-      solution_host, estimated_error_per_cell, dealii::ComponentMask(), nullptr,
-      0, triangulation.locally_owned_subdomain());
+      field_host, estimated_error_per_cell, dealii::ComponentMask(), nullptr, 0,
+      triangulation.locally_owned_subdomain());
 
   return estimated_error_per_cell;
 }
@@ -357,7 +357,7 @@ void refine_and_transfer(
         &thermal_physics,
     adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties,
     dealii::DoFHandler<dim> &dof_handler,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> &solution)
+    dealii::LA::distributed::Vector<double, MemorySpaceType> &temperature)
 {
 #ifdef ADAMANTINE_WITH_CALIPER
   CALI_CXX_MARK_FUNCTION;
@@ -376,10 +376,10 @@ void refine_and_transfer(
   // transfer to the refined mesh.
   thermal_physics->set_state_to_material_properties();
 
-  // Transfer of the solution
+  // Transfer the temperature
   dealii::parallel::distributed::SolutionTransfer<
       dim, dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>>
-      solution_transfer(dof_handler);
+      temperature_transfer(dof_handler);
 
   // Transfer material state
   unsigned int const direction_data_size = 2;
@@ -445,28 +445,29 @@ void refine_and_transfer(
   // Prepare the Triangulation and the diffent data transfer objects for
   // refinement
   triangulation.prepare_coarsening_and_refinement();
-  // Prepare for refinement of the solution
+  // Prepare for refinement of the temperature
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-      solution_host;
+      temperature_host;
   if constexpr (std::is_same_v<MemorySpaceType, dealii::MemorySpace::Host>)
   {
     // We need to apply the constraints before the mesh transfer
-    thermal_physics->get_affine_constraints().distribute(solution);
+    thermal_physics->get_affine_constraints().distribute(temperature);
     // We need to update the ghost values before we can do the interpolation on
     // the new mesh.
-    solution.update_ghost_values();
-    solution_transfer.prepare_for_coarsening_and_refinement(solution);
+    temperature.update_ghost_values();
+    temperature_transfer.prepare_for_coarsening_and_refinement(temperature);
   }
   else
   {
-    solution_host.reinit(solution.get_partitioner());
-    solution_host.import(solution, dealii::VectorOperation::insert);
+    temperature_host.reinit(temperature.get_partitioner());
+    temperature_host.import(temperature, dealii::VectorOperation::insert);
     // We need to apply the constraints before the mesh transfer
-    thermal_physics->get_affine_constraints().distribute(solution_host);
+    thermal_physics->get_affine_constraints().distribute(temperature_host);
     // We need to update the ghost values before we can do the interpolation on
     // the new mesh.
-    solution_host.update_ghost_values();
-    solution_transfer.prepare_for_coarsening_and_refinement(solution_host);
+    temperature_host.update_ghost_values();
+    temperature_transfer.prepare_for_coarsening_and_refinement(
+        temperature_host);
   }
 
   dealii::parallel::distributed::CellDataTransfer<
@@ -483,23 +484,23 @@ void refine_and_transfer(
   CALI_MARK_END("refine triangulation");
 #endif
 
-  // Update the AffineConstraints and resize the solution
+  // Update the AffineConstraints and resize the temperature
   thermal_physics->setup_dofs();
-  thermal_physics->initialize_dof_vector(solution);
+  thermal_physics->initialize_dof_vector(temperature);
 
   // Update MaterialProperty DoFHandler and resize the state vectors
   material_properties.reinit_dofs();
 
-  // Interpolate the solution
+  // Interpolate the temperature
   if constexpr (std::is_same_v<MemorySpaceType, dealii::MemorySpace::Host>)
   {
-    solution_transfer.interpolate(solution);
+    temperature_transfer.interpolate(temperature);
   }
   else
   {
-    solution_host.reinit(solution.get_partitioner());
-    solution_transfer.interpolate(solution_host);
-    solution.import(solution_host, dealii::VectorOperation::insert);
+    temperature_host.reinit(temperature.get_partitioner());
+    temperature_transfer.interpolate(temperature_host);
+    temperature.import(temperature_host, dealii::VectorOperation::insert);
   }
 
   // Unpack the material state and repopulate the material state
@@ -634,7 +635,7 @@ void refine_mesh(
     std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
         &thermal_physics,
     adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> &solution,
+    dealii::LA::distributed::Vector<double, MemorySpaceType> &temperature,
     std::vector<std::shared_ptr<adamantine::HeatSource<dim>>> &heat_sources,
     double const time, double const next_refinement_time,
     unsigned int const time_steps_refinement,
@@ -673,7 +674,7 @@ void refine_mesh(
   {
     // Estimate the error. For simplicity, always use dealii::QGauss
     dealii::Vector<float> estimated_error_per_cell =
-        estimate_error(triangulation, dof_handler, fe_degree, solution);
+        estimate_error(triangulation, dof_handler, fe_degree, temperature);
 
     // Flag the cells for refinement.
     unsigned int new_n_cells = static_cast<unsigned int>(
@@ -690,9 +691,9 @@ void refine_mesh(
       if (cell->level() >= max_level)
         cell->clear_refine_flag();
 
-    // Execute the refinement and transfer the solution onto the new mesh.
+    // Execute the refinement and transfer the temperature onto the new mesh.
     refine_and_transfer(thermal_physics, material_properties, dof_handler,
-                        solution);
+                        temperature);
   }
 
   // Refine the mesh along the trajectory of the sources.
@@ -743,9 +744,9 @@ void refine_mesh(
         cell->set_refine_flag();
     }
 
-    // Execute the refinement and transfer the solution onto the new mesh.
+    // Execute the refinement and transfer the temperature onto the new mesh.
     refine_and_transfer(thermal_physics, material_properties, dof_handler,
-                        solution);
+                        temperature);
   }
 
   // Recompute the inverse of the mass matrix
@@ -757,7 +758,7 @@ void refine_mesh(
     std::unique_ptr<adamantine::ThermalPhysicsInterface<dim, MemorySpaceType>>
         &thermal_physics,
     adamantine::MaterialProperty<dim, MemorySpaceType> &material_properties,
-    dealii::LA::distributed::Vector<double, MemorySpaceType> &solution,
+    dealii::LA::distributed::Vector<double, MemorySpaceType> &temperature,
     std::vector<std::shared_ptr<adamantine::HeatSource<dim>>> &heat_sources,
     double const time, double const next_refinement_time,
     unsigned int const time_steps_refinement,
@@ -770,70 +771,70 @@ void refine_mesh(
   {
   case 1:
   {
-    refine_mesh<dim, 1>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 1>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 2:
   {
-    refine_mesh<dim, 2>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 2>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 3:
   {
-    refine_mesh<dim, 3>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 3>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 4:
   {
-    refine_mesh<dim, 4>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 4>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 5:
   {
-    refine_mesh<dim, 5>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 5>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 6:
   {
-    refine_mesh<dim, 6>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 6>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 7:
   {
-    refine_mesh<dim, 7>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 7>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 8:
   {
-    refine_mesh<dim, 8>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 8>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 9:
   {
-    refine_mesh<dim, 9>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 9>(thermal_physics, material_properties, temperature,
                         heat_sources, time, next_refinement_time,
                         time_steps_refinement, refinement_database);
     break;
   }
   case 10:
   {
-    refine_mesh<dim, 10>(thermal_physics, material_properties, solution,
+    refine_mesh<dim, 10>(thermal_physics, material_properties, temperature,
                          heat_sources, time, next_refinement_time,
                          time_steps_refinement, refinement_database);
     break;
@@ -1001,7 +1002,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
   double const activation_time =
       geometry_database.get<double>("deposition_time", 0.);
 
-  // Output the initial solution
+  // Output the initial fields
   output_pvtu(*post_processor, n_time_step, time, thermal_physics, temperature,
               mechanical_physics, displacement, material_properties, timers);
   ++n_time_step;
@@ -1188,7 +1189,7 @@ run(MPI_Comm const &communicator, boost::property_tree::ptree const &database,
       }
     }
 
-    // Output the solution
+    // Output the fields
     if (n_time_step % time_steps_output == 0)
     {
       if (use_thermal_physics)
