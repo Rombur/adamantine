@@ -110,14 +110,17 @@ unsigned int RayTracing::read_next_frame()
                                                std::to_string(camera_id))),
                            frame_regex, std::to_string(_next_frame));
     wait_for_file(filename, "Waiting for the next frame: " + filename);
+    std::cout << "Reading " << filename << std::endl;
 
     // Read and parse the file
     std::ifstream file;
     file.open(filename);
     std::string line;
     std::getline(file, line); // skip the header
+    std::cout << line << std::endl;
     while (std::getline(file, line))
     {
+      std::cout << line << std::endl;
       std::size_t pos = 0;
       std::size_t last_pos = 0;
       std::size_t line_length = line.length();
