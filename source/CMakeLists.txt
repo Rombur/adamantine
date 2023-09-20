@@ -20,6 +20,7 @@ set(Adamantine_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/PostProcessor.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/RayTracing.hh
+    ${CMAKE_CURRENT_SOURCE_DIR}/RefineTransferHelper.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/ScanPath.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/ThermalOperatorBase.hh
     ${CMAKE_CURRENT_SOURCE_DIR}/ThermalOperator.hh
@@ -49,6 +50,7 @@ set(Adamantine_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/PostProcessor.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/RayTracing.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/RefineTransferHelper.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/ScanPath.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/ThermalOperator.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/ThermalPhysics.cc
