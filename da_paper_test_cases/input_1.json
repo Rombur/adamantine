@@ -1,5 +1,136 @@
-{"ensemble": {"ensemble_simulation": true, "ensemble_size": 4, "initial_temperature_stddev": 5.0}, 
-  "experiment": {"read_in_experimental_data": true, "log_filename": "observations/build_time_log.txt", "file": "observations/build_#camera_#frame.csv", "format": "ray", "first_frame": 0, "last_frame": 1000000000, "first_camera_id": 0, "last_camera_id": 0, "first_frame_temporal_offset": 0.0, "estimated_uncertainty": 5.0, "output_experiment_on_mesh": true}, 
-  "data_assimilation": {"assimilate_data": false,
- "localization_cutoff_function": "gaspari_cohn", "localization_cutoff_distance": 0.01, "solver": {"max_number_of_temp_vectors": 10, "convergence_tolerance": 0.0001, "max_iterations": 100000}},
- "units": {"mesh": "millimeter"}, "geometry": {"import_mesh": true, "mesh_format": "exodusii", "mesh_file": "mesh.e", "dim": 3, "reset_material_id": true, "material_deposition": true, "material_deposition_method": "scan_paths", "deposition_length": 0.005, "deposition_height": 0.003, "deposition_width": 0.01, "deposition_lead_time": 1, "deposition_time": 10.0, "material_height": 0.012555}, "physics": {"thermal": true, "mechanical": false}, "boundary": {"type": "convective"}, "refinement": {"n_refinements": 0, "time_steps_between_refinement": 200000}, "materials": {"n_materials": 1, "property_format": "polynomial", "material_0": {"initial_temperature": 300, "solid": {"density": 7955, "specific_heat": 650, "thermal_conductivity_x": 19.0, "thermal_conductivity_y": 19.0, "thermal_conductivity_z": 19.0, "convection_heat_transfer_coef": 0.12, "emissivity": 0.05, "lame_first_parameter": 77200000000.0, "lame_second_parameter": 72200000000.0, "thermal_expansion_coef": 3.101e-05, "elastic_limit": 173000000.0, "plastic_modulus": 500000000.0, "isotropic_hardening": 1, "density_s": 7955}, "liquid": {"specific_heat": 770.4, "density": 7955, "thermal_conductivity_x": 19.0, "thermal_conductivity_y": 19.0, "thermal_conductivity_z": 19.0, "convection_heat_transfer_coef": 0.1, "emissivity": 0.05}, "solidus": 1670, "liquidus": 1730, "latent_heat": 268000.0, "radiation_temperature_infty": 300, "convection_temperature_infty": 300}}, "sources": {"n_beams": 1, "beam_0": {"type": "goldak", "depth": 0.005, "diameter": 0.005, "scan_path_file": "scan_path.inp", "scan_path_file_format": "event_series", "absorption_efficiency": 0.7, "max_power": 1.0}}, "time_stepping": {"method": "forward_euler", "scan_path_for_duration": true, "time_step": 0.05}, "post_processor": {"filename_prefix": "case_1", "time_steps_between_output": 300, "additional_output_refinement": 0}, "discretization": {"thermal": {"fe_degree": 1, "quadrature": "gauss"}, "mechanical": {"fe_degree": 1, "quadrature": "gauss:"}}, "profiling": {"timer": false}, "memory_space": "host", "verbose_output": false}
+{
+  "ensemble": {
+    "ensemble_simulation": true,
+    "ensemble_size": 6,
+    "initial_temperature_stddev": 5.0,
+    "new_material_temperature_stddev": 10.0,
+    "beam_0_max_power_stddev": 4.0,
+    "beam_0_absorption_efficiency_stddev": 0.05
+  },
+  "experiment": {
+    "read_in_experimental_data": true,
+    "log_filename": "observations/build_time_log.txt",
+    "file": "observations/build_#camera_#frame.csv",
+    "format": "ray",
+    "first_frame": 0,
+    "last_frame": 1000000000,
+    "first_camera_id": 0,
+    "last_camera_id": 0,
+    "first_frame_temporal_offset": 0.0,
+    "estimated_uncertainty": 5.0,
+    "output_experiment_on_mesh": true
+  },
+  "data_assimilation": {
+    "assimilate_data": false,
+    "localization_cutoff_function": "gaspari_cohn",
+    "localization_cutoff_distance": 0.01,
+    "solver": {
+      "max_number_of_temp_vectors": 10,
+      "convergence_tolerance": 0.0001,
+      "max_iterations": 100000
+    }
+  },
+  "units": {
+    "mesh": "millimeter"
+  },
+  "geometry": {
+    "import_mesh": true,
+    "mesh_format": "exodusii",
+    "mesh_file": "mesh.e",
+    "dim": 3,
+    "reset_material_id": true,
+    "material_deposition": true,
+    "material_deposition_method": "scan_paths",
+    "deposition_length": 0.005,
+    "deposition_height": 0.003,
+    "deposition_width": 0.01,
+    "deposition_lead_time": 1,
+    "deposition_time": 10.0,
+    "material_height": 0.012555
+  },
+  "physics": {
+    "thermal": true,
+    "mechanical": false
+  },
+  "boundary": {
+    "type": "convective"
+  },
+  "refinement": {
+    "n_refinements": 0,
+    "time_steps_between_refinement": 200000
+  },
+  "materials": {
+    "n_materials": 1,
+    "property_format": "polynomial",
+    "material_0": {
+      "initial_temperature": 300,
+      "solid": {
+        "density": 7955,
+        "specific_heat": 650,
+        "thermal_conductivity_x": 19.0,
+        "thermal_conductivity_y": 19.0,
+        "thermal_conductivity_z": 19.0,
+        "convection_heat_transfer_coef": 0.12,
+        "emissivity": 0.05,
+        "lame_first_parameter": 77200000000.0,
+        "lame_second_parameter": 72200000000.0,
+        "thermal_expansion_coef": 3.101e-05,
+        "elastic_limit": 173000000.0,
+        "plastic_modulus": 500000000.0,
+        "isotropic_hardening": 1,
+        "density_s": 7955
+      },
+      "liquid": {
+        "specific_heat": 770.4,
+        "density": 7955,
+        "thermal_conductivity_x": 19.0,
+        "thermal_conductivity_y": 19.0,
+        "thermal_conductivity_z": 19.0,
+        "convection_heat_transfer_coef": 0.1,
+        "emissivity": 0.05
+      },
+      "solidus": 1670,
+      "liquidus": 1730,
+      "latent_heat": 268000.0,
+      "radiation_temperature_infty": 300,
+      "convection_temperature_infty": 300
+    }
+  },
+  "sources": {
+    "n_beams": 1,
+    "beam_0": {
+      "type": "goldak",
+      "depth": 0.005,
+      "diameter": 0.005,
+      "scan_path_file": "scan_path.inp",
+      "scan_path_file_format": "event_series",
+      "absorption_efficiency": 0.7,
+      "max_power": 1.0
+    }
+  },
+  "time_stepping": {
+    "method": "forward_euler",
+    "scan_path_for_duration": true,
+    "time_step": 0.05
+  },
+  "post_processor": {
+    "filename_prefix": "case_1",
+    "time_steps_between_output": 300,
+    "additional_output_refinement": 0
+  },
+  "discretization": {
+    "thermal": {
+      "fe_degree": 1,
+      "quadrature": "gauss"
+    },
+    "mechanical": {
+      "fe_degree": 1,
+      "quadrature": "gauss:"
+    }
+  },
+  "profiling": {
+    "timer": false
+  },
+  "memory_space": "host",
+  "verbose_output": false
+}
