@@ -67,9 +67,9 @@
       "solid": {
         "density": 7955,
         "specific_heat": 650,
-        "thermal_conductivity_x": 19.0,
-        "thermal_conductivity_y": 19.0,
-        "thermal_conductivity_z": 19.0,
+        "thermal_conductivity_x": 25.0,
+        "thermal_conductivity_y": 25.0,
+        "thermal_conductivity_z": 25.0,
         "convection_heat_transfer_coef": 0.12,
         "emissivity": 0.05,
         "lame_first_parameter": 77200000000.0,
@@ -114,7 +114,7 @@
     "time_step": 0.05
   },
   "post_processor": {
-    "filename_prefix": "case_2",
+    "filename_prefix": "case_2_w",
     "time_steps_between_output": 300,
     "additional_output_refinement": 0
   },
