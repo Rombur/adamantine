@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<Object name="ThresholdAttributes">
+    <Field name="outputMeshType" type="int">0</Field>
+    <Field name="boundsInputType" type="int">0</Field>
+    <Field name="listedVarNames" type="stringVector">"temperature" </Field>
+    <Field name="zonePortions" type="intVector">1 </Field>
+    <Field name="lowerBounds" type="doubleVector">200 </Field>
+    <Field name="upperBounds" type="doubleVector">1e+37 </Field>
+    <Field name="boundsRange" type="stringVector">"200:1e+37" </Field>
+    <Field name="defaultVarName" type="string">temperature</Field>
+    <Field name="defaultVarIsScalar" type="bool">true</Field>
+</Object>
