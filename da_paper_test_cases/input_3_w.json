@@ -58,7 +58,7 @@
     "type": "convective"
   },
   "refinement": {
-    "n_refinements": 1,
+    "n_refinements": 2,
     "time_steps_between_refinement": 1000
   },
   "materials": {
@@ -102,8 +102,8 @@
     "n_beams": 1,
     "beam_0": {
       "type": "goldak",
-      "depth": 0.005,
-      "diameter": 0.005,
+      "depth": 0.0133,
+      "diameter": 0.01,
       "scan_path_file": "scan_path.inp",
       "scan_path_file_format": "event_series",
       "absorption_efficiency": 0.7,
@@ -113,11 +113,11 @@
   "time_stepping": {
     "method": "forward_euler",
     "scan_path_for_duration": true,
-    "time_step": 0.01
+    "time_step": 0.005
   },
   "post_processor": {
     "filename_prefix": "case_3_w",
-    "time_steps_between_output": 300,
+    "time_steps_between_output": 200,
     "additional_output_refinement": 0
   },
   "discretization": {

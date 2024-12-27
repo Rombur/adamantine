@@ -75,7 +75,7 @@
 
   "refinement":
   {
-    "n_refinements": 1,
+    "n_refinements": 2,
     "time_steps_between_refinement": 1000
   },
 
@@ -127,8 +127,8 @@
     "beam_0":
     {
       "type": "goldak",
-      "depth": 5.0e-3,
-      "diameter": 5.0e-3,
+      "depth": 13.3e-3,
+      "diameter": 10.0e-3,
       "scan_path_file": "scan_path.inp",
       "scan_path_file_format": "event_series",
       "absorption_efficiency": 0.7,
@@ -140,13 +140,13 @@
   {
     "method": "forward_euler",
     "scan_path_for_duration": true,
-    "time_step": 1.0e-2
+    "time_step": 5.0e-3
   },
 
   "post_processor":
   {
     "filename_prefix": "solution",
-    "time_steps_between_output": 300,
+    "time_steps_between_output": 200,
     "additional_output_refinement": 0
   },
 
@@ -168,7 +168,7 @@
   "profiling":
   {
     "timer": false,
-    "caliper": "mpi-report,loop-report,runtime-report"
+    "caliper": "mpi-report,loop-report,runtime-report,calc.inclusive"
   },
   
   "memory_space": "host",
