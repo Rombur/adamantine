@@ -5,7 +5,7 @@
     "initial_temperature_stddev": 5.0,
     "new_material_temperature_stddev": 10.0,
     "beam_0_max_power_stddev": 0.01,
-    "beam_0_absorption_efficiency_stddev": 0.05
+    "beam_0_absorption_stddev": 0.05
   },
   "experiment": {
     "read_in_experimental_data": true,
@@ -130,7 +130,7 @@
   },
   "profiling": {
     "timer": false,
-    "caliper": "mpi-report,loop-report,runtime-report"
+    "caliper": "mpi-report,loop-report,runtime-report,calc.inclusive"
   },
   "memory_space": "host",
   "verbose_output": false
