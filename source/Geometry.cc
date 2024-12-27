@@ -109,6 +109,10 @@ Geometry<dim>::Geometry(
         cell->set_material_id(0);
       }
     }
+
+    // Refine the mesh globally once to get a better surface at the beginning of
+    // the build.
+    _triangulation.refine_global(1);
   }
   else
   {
