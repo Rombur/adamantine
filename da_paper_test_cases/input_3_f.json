@@ -9,7 +9,7 @@
   },
   "experiment": {
     "read_in_experimental_data": true,
-    "log_filename": "observations/build_time_log.txt",
+    "log_filename": "observations/build_time_fine_log.txt",
     "file": "observations/build_#camera_#frame.csv",
     "format": "ray",
     "first_frame": 0,
@@ -116,7 +116,7 @@
     "time_step": 0.005
   },
   "post_processor": {
-    "filename_prefix": "case_3",
+    "filename_prefix": "case_3_f",
     "time_steps_between_output": 200,
     "additional_output_refinement": 0
   },

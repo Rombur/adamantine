@@ -6,7 +6,7 @@
     "initial_temperature_stddev": 5.0,
     "new_material_temperature_stddev": 10.0,
     "beam_0_max_power_stddev": 0.01,
-    "beam_0_absorption_efficiency_stddev": 0.05
+    "beam_0_absorption_stddev": 0.05
   },
 
   "experiment":
