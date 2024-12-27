@@ -2,6 +2,12 @@
 
 import copy
 import json
+import os
+
+run_test_case = False
+
+if not run_test_case:
+    print("New input files will generated but test cases will not be run.")
 
 # Read the default input file
 with open('reference_input.json', 'r') as file:
@@ -83,3 +89,23 @@ data['post_processor']['filename_prefix'] = 'case_3_w'
 # Write the input file
 with open('input_3_w.json',  'w') as file:
     json.dump(data, file, indent = 2)
+
+##----------------------------------------------------------------------------##
+
+if run_test_case:
+    # Now we run all the test cases
+    print("starting test case 1")
+    os.system('mpirun -np 6 ./adamantine -i input_1.json')
+    print("done with test case 1")
+    
+    print("starting test case 2")
+    os.system('mpirun -np 6 ./adamantine -i input_2.json')
+    print("done with test case 2")
+    
+    print("starting test case 3")
+    os.system('mpirun -np 6 ./adamantine -i input_3.json')
+    print("done with test case 3")
+    
+    os.system('mpirun -np 6 ./adamantine -i input_1_w.json')
+    os.system('mpirun -np 6 ./adamantine -i input_2_w.json')
+    os.system('mpirun -np 6 ./adamantine -i input_3_w.json')

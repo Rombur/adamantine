@@ -5,7 +5,7 @@
     "ensemble_size": 6,
     "initial_temperature_stddev": 5.0,
     "new_material_temperature_stddev": 10.0,
-    "beam_0_max_power_stddev": 4.0,
+    "beam_0_max_power_stddev": 0.01,
     "beam_0_absorption_efficiency_stddev": 0.05
   },
 
@@ -47,8 +47,8 @@
   "geometry":
   {
     "import_mesh": true,
-    "mesh_format": "exodusii",
-    "mesh_file": "mesh.e",
+    "mesh_format": "abaqus",
+    "mesh_file": "mesh.inp",
     "dim": 3,
     "reset_material_id": true,
     "material_deposition": true,
@@ -75,8 +75,8 @@
 
   "refinement":
   {
-    "n_refinements": 0,
-    "time_steps_between_refinement": 200000
+    "n_refinements": 1,
+    "time_steps_between_refinement": 1000
   },
 
   "materials":
@@ -140,7 +140,7 @@
   {
     "method": "forward_euler",
     "scan_path_for_duration": true,
-    "time_step": 5.0e-2
+    "time_step": 1.0e-2
   },
 
   "post_processor":
@@ -167,7 +167,8 @@
 
   "profiling":
   {
-    "timer": false
+    "timer": false,
+    "caliper": "mpi-report,loop-report,runtime-report"
   },
   
   "memory_space": "host",

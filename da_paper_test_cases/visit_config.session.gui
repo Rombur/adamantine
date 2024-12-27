@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<Object name="VisIt">
+    <Field name="Version" type="string">3.3.3</Field>
+    <Object name="GUI">
+        <Object name="FileServerList">
+            <Field name="path" type="string">/home/bt2/Documents/adamantine/da_paper_test_cases</Field>
+            <Field name="filter" type="string">*</Field>
+            <Field name="useCurrentDir" type="bool">true</Field>
+            <Field name="automaticFileGrouping" type="bool">true</Field>
+            <Field name="smartFileGrouping" type="bool">true</Field>
+            <Field name="showDotFiles" type="bool">false</Field>
+            <Object name="recentpaths">
+                <Field name="localhost" type="stringVector">"/home/bt2/Documents/adamantine/da_paper_test_cases" "/home/bt2/Documents/adamantine/build_da_paper" "/home/bt2/Documents/adamantine" </Field>
+            </Object>
+        </Object>
+        <Object name="AppearanceAttributes">
+            <Field name="useSystemDefault" type="bool">true</Field>
+            <Field name="background" type="string">#c0c0c0</Field>
+            <Field name="foreground" type="string">#000000</Field>
+            <Field name="fontName" type="string">Helvetica,12,-1,5,50,0,0,0,0,0</Field>
+            <Field name="style" type="string">gtk</Field>
+            <Field name="orientation" type="int">0</Field>
+            <Field name="defaultForeground" type="string">#000000</Field>
+            <Field name="defaultBackground" type="string">#efefef</Field>
+            <Field name="defaultFontName" type="string">"Sans Serif,9,-1,5,50,0,0,0,0,0"</Field>
+            <Field name="defaultStyle" type="string">Fusion</Field>
+            <Field name="defaultOrientation" type="int">0</Field>
+        </Object>
+        <Object name="Annotation">
+            <Field name="x" type="int">348</Field>
+            <Field name="y" type="int">18</Field>
+            <Field name="width" type="int">636</Field>
+            <Field name="height" type="int">1161</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+            <Field name="activeTab" type="int">0</Field>
+        </Object>
+        <Field name="postWhenShown" type="bool">false</Field>
+        <Object name="Color tables">
+            <Field name="x" type="int">371</Field>
+            <Field name="y" type="int">39</Field>
+            <Field name="width" type="int">636</Field>
+            <Field name="height" type="int">1161</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+            <Field name="currentColorTable" type="string">hot</Field>
+            <Field name="tagList" type="stringVector">"Categorical" "Color Blind Safe" "Continuous" "Crameri" "Cyclic" "Default" "Discrete" "Diverging" "Multi-sequential" "Sequential" "Viridis" </Field>
+            <Field name="activeTags" type="boolVector">"false" "false" "false" "false" "false" "true" "false" "false" "false" "false" "false" </Field>
+            <Field name="tagsVisible" type="bool">false</Field>
+            <Field name="tagsMatchAny" type="bool">true</Field>
+        </Object>
+        <Object name="File open">
+            <Field name="x" type="int">655</Field>
+            <Field name="y" type="int">377</Field>
+            <Field name="width" type="int">615</Field>
+            <Field name="height" type="int">458</Field>
+            <Field name="visible" type="bool">false</Field>
+        </Object>
+        <Object name="Information">
+            <Field name="x" type="int">709</Field>
+            <Field name="y" type="int">456</Field>
+            <Field name="width" type="int">506</Field>
+            <Field name="height" type="int">301</Field>
+            <Field name="visible" type="bool">false</Field>
+        </Object>
+        <Object name="Pick">
+            <Field name="x" type="int">1284</Field>
+            <Field name="y" type="int">39</Field>
+            <Field name="width" type="int">636</Field>
+            <Field name="height" type="int">1161</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+            <Field name="autoShow" type="bool">true</Field>
+            <Field name="savePicks" type="bool">false</Field>
+            <Field name="userMaxTabs" type="int">8</Field>
+            <Field name="activeOptionsTab" type="int">0</Field>
+        </Object>
+        <Object name="MainWin">
+            <Field name="x" type="int">0</Field>
+            <Field name="y" type="int">18</Field>
+            <Field name="width" type="int">518</Field>
+            <Field name="height" type="int">1161</Field>
+            <Field name="SPLITTER_VALUES_V2" type="floatVector">0 0.543162 0.4529583 </Field>
+        </Object>
+        <Object name="Pseudocolor plot attributes">
+            <Field name="x" type="int">371</Field>
+            <Field name="y" type="int">39</Field>
+            <Field name="width" type="int">636</Field>
+            <Field name="height" type="int">1161</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+        </Object>
+        <Object name="Threshold operator attributes">
+            <Field name="x" type="int">371</Field>
+            <Field name="y" type="int">39</Field>
+            <Field name="width" type="int">636</Field>
+            <Field name="height" type="int">1161</Field>
+            <Field name="visible" type="bool">false</Field>
+            <Field name="posted" type="bool">false</Field>
+        </Object>
+        <Field name="plotDatabases" type="stringVector">"localhost:/home/bt2/Documents/adamantine/da_paper_test_cases/case_1_m0.*.pvtu database" </Field>
+        <Object name="TimeFormat">
+            <Field name="displayMode" type="string">Cycles</Field>
+            <Field name="precision" type="int">5</Field>
+        </Object>
+        <Field name="showSelectedFiles" type="bool">false</Field>
+        <Field name="allowFileSelectionChange" type="bool">true</Field>
+        <Field name="enableWarningMessagePopups" type="bool">true</Field>
+    </Object>
+</Object>
