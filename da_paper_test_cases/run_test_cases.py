@@ -4,7 +4,9 @@ import copy
 import json
 import os
 
-run_test_cases = ['1']
+# Possible values are: 1, 2, 3, 1w, 2w, 3w, 2f, 3f
+run_test_cases = ['2', '3', '1w', '2w', '3w', '2f', '3f']
+#run_test_cases = ['1']
 
 if run_test_cases == []:
     print("New input files will generated but test cases will not be run.")
@@ -19,8 +21,10 @@ with open('reference_input.json', 'r') as file:
 ## Heat Source: Goldak                                                        ##
 ##----------------------------------------------------------------------------##
 
-# First case: plain simulation
+# First case: plain simulation. Single simulation
 data = copy.deepcopy(ref_data)
+# Use single simulation
+data['ensemble']['ensemble_simulation'] = False
 # Turn off data assimilation
 data['data_assimilation']['assimilate_data'] = False
 # Rename output file
@@ -58,6 +62,8 @@ wrong_th_conduc = 25.0
 
 # Fourth case: plain simulation
 data = copy.deepcopy(ref_data)
+# Use single simulation
+data['ensemble']['ensemble_simulation'] = False
 # Turn off data assimilation
 data['data_assimilation']['assimilate_data'] = False
 # Set the wrong conductivity
@@ -136,39 +142,79 @@ with open('input_3_f.json',  'w') as file:
 if '1' in run_test_cases:
     print("starting test case 1")
     os.system('mpirun -np 12 ./adamantine -i input_1.json')
+    os.system('mkdir test_case_1')
+    os.system('mv case_1* test_case_1')
+    os.system('tar -cf test_case_1.tar test_case_1')
+    os.system('rm -r test_case_1')
+    os.system('gzip test_case_1.tar')
     print("done with test case 1")
     
 if '2' in run_test_cases:
     print("starting test case 2")
     os.system('mpirun -np 12 ./adamantine -i input_2.json')
+    os.system('mkdir test_case_2')
+    os.system('mv case_2* test_case_2')
+    os.system('tar -cf test_case_2.tar test_case_2')
+    os.system('rm -r test_case_2')
+    os.system('gzip test_case_2.tar')
     print("done with test case 2")
     
 if '3' in run_test_cases:
     print("starting test case 3")
     os.system('mpirun -np 12 ./adamantine -i input_3.json')
+    os.system('mkdir test_case_3')
+    os.system('mv case_3* test_case_3')
+    os.system('tar -cf test_case_3.tar test_case_3')
+    os.system('rm -r test_case_3')
+    os.system('gzip test_case_3.tar')
     print("done with test case 3")
     
 if '1w' in run_test_cases:
     print("starting test case 1w")
     os.system('mpirun -np 12 ./adamantine -i input_1_w.json')
+    os.system('mkdir test_case_1_w')
+    os.system('mv case_1_w* test_case_1_w')
+    os.system('tar -cf test_case_1_w.tar test_case_1_w')
+    os.system('rm -r test_case_1_w')
+    os.system('gzip test_case_1_w.tar')
     print("done with test case 1w")
 
 if '2w' in run_test_cases:
     print("starting test case 2w")
     os.system('mpirun -np 12 ./adamantine -i input_2_w.json')
+    os.system('mkdir test_case_2_w')
+    os.system('mv case_2_w* test_case_2_w')
+    os.system('tar -cf test_case_2_w.tar test_case_2_w')
+    os.system('rm -r test_case_2_w')
+    os.system('gzip test_case_2_w.tar')
     print("done with test case 2w")
 
 if '3w' in run_test_cases:
     print("starting test case 3w")
     os.system('mpirun -np 12 ./adamantine -i input_3_w.json')
+    os.system('mkdir test_case_3_w')
+    os.system('mv case_3_w* test_case_3_w')
+    os.system('tar -cf test_case_3_w.tar test_case_3_w')
+    os.system('rm -r test_case_3_w')
+    os.system('gzip test_case_3_w.tar')
     print("done with test case 3w")
 
 if '2f' in run_test_cases:
     print("starting test case 2f")
     os.system('mpirun -np 12 ./adamantine -i input_2_f.json')
+    os.system('mkdir test_case_2_f')
+    os.system('mv case_2_f* test_case_2_f')
+    os.system('tar -cf test_case_2_f.tar test_case_2_f')
+    os.system('rm -r test_case_2_f')
+    os.system('gzip test_case_2_f.tar')
     print("done with test case 2f")
 
 if '3f' in run_test_cases:
     print("starting test case 3f")
     os.system('mpirun -np 12 ./adamantine -i input_3_f.json')
+    os.system('mkdir test_case_3_f')
+    os.system('mv case_3_f* test_case_3_f')
+    os.system('tar -cf test_case_3_f.tar test_case_3_f')
+    os.system('rm -r test_case_3_f')
+    os.system('gzip test_case_3_f.tar')
     print("done with test case 3f")

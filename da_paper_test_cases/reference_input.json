@@ -4,7 +4,7 @@
     "ensemble_simulation": true,
     "ensemble_size": 6,
     "initial_temperature_stddev": 5.0,
-    "new_material_temperature_stddev": 10.0,
+    "new_material_temperature_stddev": 5.0,
     "beam_0_max_power_stddev": 0.05,
     "beam_0_absorption_stddev": 0.02
   },
@@ -28,7 +28,7 @@
   {
     "assimilate_data": true,
     "localization_cutoff_function": "gaspari_cohn",
-    "localization_cutoff_distance": 1.0e-2,
+    "localization_cutoff_distance": 5.0e-3,
     "solver":
     {
       "max_number_of_temp_vectors": 10,
@@ -168,7 +168,7 @@
   "profiling":
   {
     "timer": false,
-    "caliper": "loop-report,runtime-report(calc.inclusive,region.count,profile.kokkos)"
+    "caliper": "loop-report,runtime-report(calc.inclusive,region.count,profile.kokkos,mem.highwatermark)"
   },
   
   "memory_space": "host",

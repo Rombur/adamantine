@@ -3,9 +3,9 @@
     "ensemble_simulation": true,
     "ensemble_size": 6,
     "initial_temperature_stddev": 5.0,
-    "new_material_temperature_stddev": 10.0,
-    "beam_0_max_power_stddev": 0.01,
-    "beam_0_absorption_stddev": 0.05
+    "new_material_temperature_stddev": 5.0,
+    "beam_0_max_power_stddev": 0.05,
+    "beam_0_absorption_stddev": 0.02
   },
   "experiment": {
     "read_in_experimental_data": true,
@@ -59,7 +59,7 @@
   },
   "refinement": {
     "n_refinements": 2,
-    "time_steps_between_refinement": 1000
+    "time_steps_between_refinement": 50000
   },
   "materials": {
     "n_materials": 1,
@@ -103,11 +103,11 @@
     "beam_0": {
       "type": "goldak",
       "depth": 0.0133,
-      "diameter": 0.01,
+      "diameter": 0.015,
       "scan_path_file": "scan_path.inp",
       "scan_path_file_format": "event_series",
-      "absorption_efficiency": 0.7,
-      "max_power": 1.0
+      "absorption_efficiency": 0.9,
+      "max_power": 1.5
     }
   },
   "time_stepping": {
@@ -117,7 +117,7 @@
   },
   "post_processor": {
     "filename_prefix": "case_3_w",
-    "time_steps_between_output": 200,
+    "time_steps_between_output": 1000,
     "additional_output_refinement": 0
   },
   "discretization": {
@@ -132,7 +132,7 @@
   },
   "profiling": {
     "timer": false,
-    "caliper": "mpi-report,loop-report,runtime-report,calc.inclusive"
+    "caliper": "loop-report,runtime-report(calc.inclusive,region.count,profile.kokkos,mem.highwatermark)"
   },
   "memory_space": "host",
   "verbose_output": false
