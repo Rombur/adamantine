@@ -1,48 +1,25 @@
 {
   "ensemble": {
-    "ensemble_simulation": true,
+    "ensemble_simulation": false,
     "ensemble_size": 6,
     "materials": {
       "material_0": {
-        "initial_temperature_stddev": 5.0,
-        "new_material_temperature_stddev": 5.0,
-        "solid": {
-          "density_stddev": 1.0,
-          "specific_heat_stddev": 1.0,
-          "thermal_conductivity_x_stddev": 1.0,
-          "thermal_conductivity_y_stddev": 1.0,
-          "thermal_conductivity_z_stddev": 1.0,
-          "convection_heat_transfer_coef_stddev": 0.02,
-          "emissivity_stddev": 0.005
-        },
-        "liquid": {
-          "specific_heat_sttdev": 1.0,
-          "density_stddev": 1.0,
-          "thermal_conductivity_x_stddev": 1.0,
-          "thermal_conductivity_y_stddev": 1.0,
-          "thermal_conductivity_z_stddev": 1.0,
-          "convection_heat_transfer_coef_stddev": 0.02,
-          "emissivity_stddev": 0.005
-        },
-        "solidus_stddev": 1.0,
-        "liquidus_stddev": 1.0,
-        "latent_heat_stddev": 100.0,
-        "radiation_temperature_infty_stddev": 5.0,
-        "convection_temperature_infty_stddev": 5.0
+        "initial_temperature_stddev": 10.0,
+        "new_material_temperature_stddev": 10.0
       }
     },
     "sources": {
       "beam_0": {
-        "depth_stddev": 0.001,
-        "diameter_stddev": 0.001,
-        "absorption_efficiency_stddev": 0.02,
-        "max_power_stddev": 0.05
+        "depth_stddev": 0.002,
+        "diameter_stddev": 0.002,
+        "absorption_efficiency_stddev": 0.03,
+        "max_power_stddev": 0.15
       }
     }
   },
   "experiment": {
     "read_in_experimental_data": true,
-    "log_filename": "observations/build_time_fine_log.txt",
+    "log_filename": "observations/build_time_log.txt",
     "file": "observations/build_#camera_#frame.csv",
     "format": "ray",
     "first_frame": 0,
@@ -50,20 +27,18 @@
     "first_camera_id": 0,
     "last_camera_id": 0,
     "first_frame_temporal_offset": 0.0,
-    "estimated_uncertainty": 5.0,
+    "estimated_uncertainty": 0.5,
     "output_experiment_on_mesh": true
   },
   "data_assimilation": {
-    "assimilate_data": true,
+    "assimilate_data": false,
     "localization_cutoff_function": "gaspari_cohn",
-    "localization_cutoff_distance": 0.005,
+    "localization_cutoff_distance": 0.0015,
     "solver": {
-      "max_number_of_temp_vectors": 10,
+      "max_number_of_temp_vectors": 25,
       "convergence_tolerance": 0.0001,
       "max_iterations": 100000
-    },
-    "augment_with_beam_0_absorption": true,
-    "augment_with_beam_0_max_power": true
+    }
   },
   "units": {
     "mesh": "millimeter"
@@ -81,7 +56,7 @@
     "deposition_width": 0.01,
     "deposition_lead_time": 1,
     "deposition_time": 10.0,
-    "material_height": 0.0
+    "material_height": 0.012555
   },
   "physics": {
     "thermal": true,
@@ -91,7 +66,7 @@
     "type": "convective"
   },
   "refinement": {
-    "n_refinements": 0,
+    "n_refinements": 2,
     "time_steps_between_refinement": 50000
   },
   "materials": {
@@ -143,7 +118,7 @@
     "time_step": 0.005
   },
   "post_processor": {
-    "filename_prefix": "case_3_f",
+    "filename_prefix": "case_1",
     "time_steps_between_output": 200,
     "additional_output_refinement": 0
   },
@@ -159,7 +134,7 @@
   },
   "profiling": {
     "timer": false,
-    "caliper": "loop-report,runtime-report(calc.inclusive,region.count,profile.kokkos)"
+    "caliper": "sample-report,max_column_width=300"
   },
   "memory_space": "host",
   "verbose_output": true

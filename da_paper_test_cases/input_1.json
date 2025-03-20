@@ -2,10 +2,43 @@
   "ensemble": {
     "ensemble_simulation": false,
     "ensemble_size": 6,
-    "initial_temperature_stddev": 5.0,
-    "new_material_temperature_stddev": 5.0,
-    "beam_0_max_power_stddev": 0.05,
-    "beam_0_absorption_stddev": 0.02
+    "materials": {
+      "material_0": {
+        "initial_temperature_stddev": 5.0,
+        "new_material_temperature_stddev": 5.0,
+        "solid": {
+          "density_stddev": 1.0,
+          "specific_heat_stddev": 1.0,
+          "thermal_conductivity_x_stddev": 1.0,
+          "thermal_conductivity_y_stddev": 1.0,
+          "thermal_conductivity_z_stddev": 1.0,
+          "convection_heat_transfer_coef_stddev": 0.02,
+          "emissivity_stddev": 0.005
+        },
+        "liquid": {
+          "specific_heat_sttdev": 1.0,
+          "density_stddev": 1.0,
+          "thermal_conductivity_x_stddev": 1.0,
+          "thermal_conductivity_y_stddev": 1.0,
+          "thermal_conductivity_z_stddev": 1.0,
+          "convection_heat_transfer_coef_stddev": 0.02,
+          "emissivity_stddev": 0.005
+        },
+        "solidus_stddev": 1.0,
+        "liquidus_stddev": 1.0,
+        "latent_heat_stddev": 100.0,
+        "radiation_temperature_infty_stddev": 5.0,
+        "convection_temperature_infty_stddev": 5.0
+      }
+    },
+    "sources": {
+      "beam_0": {
+        "depth_stddev": 0.001,
+        "diameter_stddev": 0.001,
+        "absorption_efficiency_stddev": 0.02,
+        "max_power_stddev": 0.05
+      }
+    }
   },
   "experiment": {
     "read_in_experimental_data": true,
@@ -23,7 +56,7 @@
   "data_assimilation": {
     "assimilate_data": false,
     "localization_cutoff_function": "gaspari_cohn",
-    "localization_cutoff_distance": 0.01,
+    "localization_cutoff_distance": 0.005,
     "solver": {
       "max_number_of_temp_vectors": 10,
       "convergence_tolerance": 0.0001,
@@ -46,7 +79,7 @@
     "deposition_width": 0.01,
     "deposition_lead_time": 1,
     "deposition_time": 10.0,
-    "material_height": 0.012555
+    "material_height": 0.0
   },
   "physics": {
     "thermal": true,
@@ -56,7 +89,7 @@
     "type": "convective"
   },
   "refinement": {
-    "n_refinements": 2,
+    "n_refinements": 0,
     "time_steps_between_refinement": 50000
   },
   "materials": {
@@ -64,6 +97,7 @@
     "property_format": "polynomial",
     "material_0": {
       "initial_temperature": 300,
+      "new_material_temperature": 300,
       "solid": {
         "density": 7955,
         "specific_heat": 650,
@@ -71,14 +105,7 @@
         "thermal_conductivity_y": 19.0,
         "thermal_conductivity_z": 19.0,
         "convection_heat_transfer_coef": 0.12,
-        "emissivity": 0.05,
-        "lame_first_parameter": 77200000000.0,
-        "lame_second_parameter": 72200000000.0,
-        "thermal_expansion_coef": 3.101e-05,
-        "elastic_limit": 173000000.0,
-        "plastic_modulus": 500000000.0,
-        "isotropic_hardening": 1,
-        "density_s": 7955
+        "emissivity": 0.05
       },
       "liquid": {
         "specific_heat": 770.4,
@@ -115,7 +142,7 @@
   },
   "post_processor": {
     "filename_prefix": "case_1",
-    "time_steps_between_output": 1000,
+    "time_steps_between_output": 200,
     "additional_output_refinement": 0
   },
   "discretization": {
@@ -130,8 +157,8 @@
   },
   "profiling": {
     "timer": false,
-    "caliper": "loop-report,runtime-report(calc.inclusive,region.count,profile.kokkos,mem.highwatermark)"
+    "caliper": "loop-report,runtime-report(calc.inclusive,region.count,profile.kokkos)"
   },
   "memory_space": "host",
-  "verbose_output": false
+  "verbose_output": true
 }
