@@ -7,6 +7,7 @@ import os
 # Possible values are: 1, 2, 3, 1w, 2w, 3w, 2f, 3f
 run_test_cases = ['2', '3', '1w', '2w', '3w', '2f', '3f']
 #run_test_cases = ['1']
+n_procs = 6
 
 if run_test_cases == []:
     print("New input files will generated but test cases will not be run.")
@@ -141,7 +142,7 @@ with open('input_3_f.json',  'w') as file:
 
 if '1' in run_test_cases:
     print("starting test case 1")
-    os.system('mpirun -np 12 ./adamantine -i input_1.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_1.json')
     os.system('mkdir test_case_1')
     os.system('mv case_1* test_case_1')
     os.system('tar -cf test_case_1.tar test_case_1')
@@ -151,7 +152,7 @@ if '1' in run_test_cases:
     
 if '2' in run_test_cases:
     print("starting test case 2")
-    os.system('mpirun -np 12 ./adamantine -i input_2.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_2.json')
     os.system('mkdir test_case_2')
     os.system('mv case_2* test_case_2')
     os.system('tar -cf test_case_2.tar test_case_2')
@@ -161,7 +162,7 @@ if '2' in run_test_cases:
     
 if '3' in run_test_cases:
     print("starting test case 3")
-    os.system('mpirun -np 12 ./adamantine -i input_3.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_3.json')
     os.system('mkdir test_case_3')
     os.system('mv case_3* test_case_3')
     os.system('tar -cf test_case_3.tar test_case_3')
@@ -171,7 +172,7 @@ if '3' in run_test_cases:
     
 if '1w' in run_test_cases:
     print("starting test case 1w")
-    os.system('mpirun -np 12 ./adamantine -i input_1_w.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_1_w.json')
     os.system('mkdir test_case_1_w')
     os.system('mv case_1_w* test_case_1_w')
     os.system('tar -cf test_case_1_w.tar test_case_1_w')
@@ -181,7 +182,7 @@ if '1w' in run_test_cases:
 
 if '2w' in run_test_cases:
     print("starting test case 2w")
-    os.system('mpirun -np 12 ./adamantine -i input_2_w.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_2_w.json')
     os.system('mkdir test_case_2_w')
     os.system('mv case_2_w* test_case_2_w')
     os.system('tar -cf test_case_2_w.tar test_case_2_w')
@@ -191,7 +192,7 @@ if '2w' in run_test_cases:
 
 if '3w' in run_test_cases:
     print("starting test case 3w")
-    os.system('mpirun -np 12 ./adamantine -i input_3_w.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_3_w.json')
     os.system('mkdir test_case_3_w')
     os.system('mv case_3_w* test_case_3_w')
     os.system('tar -cf test_case_3_w.tar test_case_3_w')
@@ -201,7 +202,7 @@ if '3w' in run_test_cases:
 
 if '2f' in run_test_cases:
     print("starting test case 2f")
-    os.system('mpirun -np 12 ./adamantine -i input_2_f.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_2_f.json')
     os.system('mkdir test_case_2_f')
     os.system('mv case_2_f* test_case_2_f')
     os.system('tar -cf test_case_2_f.tar test_case_2_f')
@@ -211,7 +212,7 @@ if '2f' in run_test_cases:
 
 if '3f' in run_test_cases:
     print("starting test case 3f")
-    os.system('mpirun -np 12 ./adamantine -i input_3_f.json')
+    os.system('mpirun -np ' + str(n_procs) + ' ./adamantine -i input_3_f.json')
     os.system('mkdir test_case_3_f')
     os.system('mv case_3_f* test_case_3_f')
     os.system('tar -cf test_case_3_f.tar test_case_3_f')
