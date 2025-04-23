@@ -171,6 +171,13 @@ void DataAssimilator::update_ensemble(
 
     for (unsigned int member = 0; member < _num_ensemble_members; ++member)
     {
+      std::cout << "member " << member << std::endl;
+      std::cout << "maximum shift " << forecast_shift[member].linfty_norm()
+                << std::endl;
+      std::cout << "average shift "
+                << forecast_shift[member].l1_norm() /
+                       forecast_shift[member].size()
+                << std::endl;
       global_augmented_state_ensemble[member] += forecast_shift[member];
     }
 
