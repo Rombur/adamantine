@@ -439,34 +439,43 @@ DataAssimilator::apply_kalman_gain(
 
   // Apply the Kalman gain to the perturbed innovation for the ensemble
   // members in parallel
-  std::transform(
-      perturbed_innovation.begin(), perturbed_innovation.end(), output.begin(),
-      [&](dealii::Vector<double> const &entry)
+  for (unsigned int i = 0; i < perturbed_innovation.size(); ++i)
+  {
+    try
+    {
+      dealii::SolverGMRES<dealii::Vector<double>> HPH_plus_R_inv_solver(
+          solver_control, additional_data);
+
+      auto op_HPH_plus_R_inv =
+          dealii::inverse_operator(op_HPH_plus_R, HPH_plus_R_inv_solver);
+
+      const auto op_K =
+          op_P * dealii::transpose_operator(op_H) * op_HPH_plus_R_inv;
+
+      // Apply the Kalman gain to each innovation vector
+      dealii::Vector<double> temporary = op_K * perturbed_innovation[i];
+
+      // Copy into a distributed block vector, this is the only place where
+      // the mismatch matters, using dealii::Vector for the experimental
+      // data and dealii::LA::distributed::BlockVector for the simulation
+      // data.
+      dealii::LA::distributed::BlockVector<double> output_member(block_sizes);
+      for (unsigned int j = 0; j < augmented_state_size; ++j)
       {
-        dealii::SolverGMRES<dealii::Vector<double>> HPH_plus_R_inv_solver(
-            solver_control, additional_data);
-
-        auto op_HPH_plus_R_inv =
-            dealii::inverse_operator(op_HPH_plus_R, HPH_plus_R_inv_solver);
-
-        const auto op_K =
-            op_P * dealii::transpose_operator(op_H) * op_HPH_plus_R_inv;
-
-        // Apply the Kalman gain to each innovation vector
-        dealii::Vector<double> temporary = op_K * entry;
-
-        // Copy into a distributed block vector, this is the only place where
-        // the mismatch matters, using dealii::Vector for the experimental
-        // data and dealii::LA::distributed::BlockVector for the simulation
-        // data.
-        dealii::LA::distributed::BlockVector<double> output_member(block_sizes);
-        for (unsigned int i = 0; i < augmented_state_size; ++i)
-        {
-          output_member(i) = temporary(i);
-        }
-
-        return output_member;
-      });
+        output_member(j) = temporary(j);
+      }
+      output[i] = output_member;
+    }
+    catch (dealii::SolverControl::NoConvergence const &exception)
+    {
+      // We couldn't solve the data assimilation, so we don't update the state.
+      // Output a message using the error stream.
+      std::cerr << "Ensemble member " << i
+                << ": GMRES failed to converge at iteration "
+                << exception.last_step << " with a residual of "
+                << exception.last_residual << std::endl;
+    }
+  }
 
   return output;
 }
