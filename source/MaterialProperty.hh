@@ -276,8 +276,8 @@ private:
    * Thermal material properties which have been set
    * using polynomials.
    */
-  Kokkos::View<double *[g_n_thermal_state_properties]
-                   [MaterialStates::n_material_states][p_order + 1],
+  Kokkos::View<double[1][g_n_thermal_state_properties]
+                     [MaterialStates::n_material_states][p_order + 1],
                typename MemorySpaceType::kokkos_space>
       _state_property_polynomials;
   /**
@@ -452,20 +452,272 @@ MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>::
   }
   else
   {
-    for (unsigned int material_state = 0;
-         material_state < MaterialStates::n_material_states; ++material_state)
+    if constexpr (MaterialStates::n_material_states == 1)
     {
-      for (unsigned int i = 0; i <= p_order; ++i)
+      int constexpr material_state = 0;
+      if constexpr (p_order == 0)
       {
-        for (unsigned int n = 0; n < dealii::VectorizedArray<double>::size();
-             ++n)
-        {
-          property[n] = _state_property_polynomials(
-              material_id[n], property_index, material_state, i);
-        }
-
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 0);
         value +=
-            state_ratios[material_state] * property * temperature_powers[i];
+            state_ratios[material_state] * property * temperature_powers[0];
+      }
+
+      if constexpr (p_order == 1)
+      {
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 0);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[0];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 1);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[1];
+      }
+
+      if constexpr (p_order == 2)
+      {
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 0);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[0];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 1);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[1];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 2);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[2];
+      }
+
+      if constexpr (p_order == 3)
+      {
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 0);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[0];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 1);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[1];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 2);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[2];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 3);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[3];
+      }
+
+      if constexpr (p_order == 4)
+      {
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 0);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[0];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 1);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[1];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 2);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[2];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 3);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[3];
+
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               material_state, 4);
+        value +=
+            state_ratios[material_state] * property * temperature_powers[4];
+      }
+    }
+
+    if constexpr (MaterialStates::n_material_states == 2)
+    {
+      int constexpr solid = 0;
+      int constexpr liquid = 1;
+
+      // p > = 0
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 0);
+        value += state_ratios[solid] * property * temperature_powers[0];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 0);
+        value += state_ratios[liquid] * property * temperature_powers[0];
+      }
+
+      // p >= 1
+      if constexpr (p_order >= 1)
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 1);
+        value += state_ratios[solid] * property * temperature_powers[1];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 1);
+        value += state_ratios[liquid] * property * temperature_powers[1];
+      }
+
+      // p >= 2
+      if constexpr (p_order >= 2)
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 2);
+        value += state_ratios[solid] * property * temperature_powers[2];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 2);
+        value += state_ratios[liquid] * property * temperature_powers[2];
+      }
+
+      // p >= 3
+      if constexpr (p_order >= 3)
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 3);
+        value += state_ratios[solid] * property * temperature_powers[3];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 3);
+        value += state_ratios[liquid] * property * temperature_powers[3];
+      }
+
+      // p == 4
+      if constexpr (p_order == 4)
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 4);
+        value += state_ratios[solid] * property * temperature_powers[4];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 4);
+        value += state_ratios[liquid] * property * temperature_powers[4];
+      }
+    }
+
+    if constexpr (MaterialStates::n_material_states == 3)
+    {
+      int constexpr solid = 0;
+      int constexpr liquid = 1;
+      int constexpr powder = 2;
+
+      // p > = 0
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 0);
+        value += state_ratios[solid] * property * temperature_powers[0];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 0);
+        value += state_ratios[liquid] * property * temperature_powers[0];
+
+        // Powder
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               powder, 0);
+        value += state_ratios[powder] * property * temperature_powers[0];
+      }
+
+      // p >= 1
+      if constexpr (p_order >= 1)
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 1);
+        value += state_ratios[solid] * property * temperature_powers[1];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 1);
+        value += state_ratios[liquid] * property * temperature_powers[1];
+
+        // Powder
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               powder, 1);
+        value += state_ratios[powder] * property * temperature_powers[1];
+      }
+
+      // p >= 2
+      if constexpr (p_order >= 2)
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 2);
+        value += state_ratios[solid] * property * temperature_powers[2];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 2);
+        value += state_ratios[liquid] * property * temperature_powers[2];
+
+        // Powder
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               powder, 2);
+        value += state_ratios[powder] * property * temperature_powers[2];
+      }
+
+      // p >= 3
+      if constexpr (p_order >= 3)
+      {
+        // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 3);
+        value += state_ratios[solid] * property * temperature_powers[3];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 3);
+        value += state_ratios[liquid] * property * temperature_powers[3];
+
+        // Powder
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               powder, 3);
+        value += state_ratios[powder] * property * temperature_powers[3];
+      }
+
+      // p == 4
+      if constexpr (p_order == 4)
+      { // Solid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               solid, 4);
+        value += state_ratios[solid] * property * temperature_powers[4];
+
+        // Liquid
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               liquid, 4);
+        value += state_ratios[liquid] * property * temperature_powers[4];
+
+        // Powder
+        property = _state_property_polynomials(material_id[0], property_index,
+                                               powder, 4);
+        value += state_ratios[powder] * property * temperature_powers[4];
       }
     }
   }

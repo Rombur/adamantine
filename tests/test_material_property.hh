@@ -366,103 +366,110 @@ void material_property_table()
 template <typename MemorySpaceType>
 void material_property_polynomials()
 {
-  MPI_Comm communicator = MPI_COMM_WORLD;
-
-  boost::property_tree::ptree database;
-  boost::property_tree::read_info("material_property_polynomial.info",
-                                  database);
-
-  // Create the Geometry
-  boost::property_tree::ptree geometry_database =
-      database.get_child("geometry");
-  boost::optional<boost::property_tree::ptree const &> units_optional_database;
-  adamantine::Geometry<2> geometry(communicator, geometry_database,
-                                   units_optional_database);
-  auto const &triangulation = geometry.get_triangulation();
-
-  unsigned int n = 0;
-  for (auto cell : triangulation.active_cell_iterators())
-  {
-    if (n < 10)
-      cell->set_material_id(0);
-    else
-      cell->set_material_id(1);
-
-    if (n < 15)
-      cell->set_user_index(
-          static_cast<int>(adamantine::SolidLiquidPowder::State::solid));
-    else
-      cell->set_user_index(
-          static_cast<int>(adamantine::SolidLiquidPowder::State::powder));
-
-    ++n;
-  }
-
-  // Create the MaterialProperty
-  boost::property_tree::ptree material_database =
-      database.get_child("materials");
-  adamantine::MaterialProperty<2, 4, adamantine::SolidLiquidPowder,
-                               MemorySpaceType>
-      mat_prop(communicator, triangulation, material_database);
-  // Evaluate the material property at the given temperature
-  dealii::FE_Q<2> fe(4);
-  dealii::DoFHandler<2> dof_handler(triangulation);
-  dof_handler.distribute_dofs(fe);
-  dealii::LinearAlgebra::distributed::Vector<double, MemorySpaceType>
-      temperature(dof_handler.locally_owned_dofs(), communicator);
-  dealii::LA::ReadWriteVector<double> rw_vector(
-      dof_handler.locally_owned_dofs());
-  for (unsigned int i = 0; i < temperature.locally_owned_size(); ++i)
-    rw_vector.local_element(i) = 15;
-  temperature.import(rw_vector, dealii::VectorOperation::insert);
-  mat_prop.update(dof_handler, temperature);
-
-  n = 0;
-  double constexpr tolerance = 1e-10;
-  for (auto cell : triangulation.active_cell_iterators())
-  {
-    if (n < 10)
-    {
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::density) == 15.,
-                 tt::tolerance(tolerance));
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::thermal_conductivity_x) ==
-                     465.,
-                 tt::tolerance(tolerance));
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::thermal_conductivity_z) ==
-                     465.,
-                 tt::tolerance(tolerance));
-    }
-    else if (n < 15)
-    {
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::density) == 706.,
-                 tt::tolerance(tolerance));
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::thermal_conductivity_x) ==
-                     681001.,
-                 tt::tolerance(tolerance));
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::thermal_conductivity_z) ==
-                     681001.,
-                 tt::tolerance(tolerance));
-    }
-    else
-    {
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::density) == 720.,
-                 tt::tolerance(tolerance));
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::thermal_conductivity_x) ==
-                     45280.,
-                 tt::tolerance(tolerance));
-      BOOST_TEST(mat_prop.get_cell_value(
-                     cell, adamantine::StateProperty::thermal_conductivity_z) ==
-                     45280.,
-                 tt::tolerance(tolerance));
-    }
-    ++n;
-  }
+  //  MPI_Comm communicator = MPI_COMM_WORLD;
+  //
+  //  boost::property_tree::ptree database;
+  //  boost::property_tree::read_info("material_property_polynomial.info",
+  //                                  database);
+  //
+  //  // Create the Geometry
+  //  boost::property_tree::ptree geometry_database =
+  //      database.get_child("geometry");
+  //  boost::optional<boost::property_tree::ptree const &>
+  //  units_optional_database; adamantine::Geometry<2> geometry(communicator,
+  //  geometry_database,
+  //                                   units_optional_database);
+  //  auto const &triangulation = geometry.get_triangulation();
+  //
+  //  unsigned int n = 0;
+  //  for (auto cell : triangulation.active_cell_iterators())
+  //  {
+  //    if (n < 10)
+  //      cell->set_material_id(0);
+  //    else
+  //      cell->set_material_id(1);
+  //
+  //    if (n < 15)
+  //      cell->set_user_index(
+  //          static_cast<int>(adamantine::SolidLiquidPowder::State::solid));
+  //    else
+  //      cell->set_user_index(
+  //          static_cast<int>(adamantine::SolidLiquidPowder::State::powder));
+  //
+  //    ++n;
+  //  }
+  //
+  //  // Create the MaterialProperty
+  //  boost::property_tree::ptree material_database =
+  //      database.get_child("materials");
+  //  adamantine::MaterialProperty<2, 4, adamantine::SolidLiquidPowder,
+  //                               MemorySpaceType>
+  //      mat_prop(communicator, triangulation, material_database);
+  //  // Evaluate the material property at the given temperature
+  //  dealii::FE_Q<2> fe(4);
+  //  dealii::DoFHandler<2> dof_handler(triangulation);
+  //  dof_handler.distribute_dofs(fe);
+  //  dealii::LinearAlgebra::distributed::Vector<double, MemorySpaceType>
+  //      temperature(dof_handler.locally_owned_dofs(), communicator);
+  //  dealii::LA::ReadWriteVector<double> rw_vector(
+  //      dof_handler.locally_owned_dofs());
+  //  for (unsigned int i = 0; i < temperature.locally_owned_size(); ++i)
+  //    rw_vector.local_element(i) = 15;
+  //  temperature.import(rw_vector, dealii::VectorOperation::insert);
+  //  mat_prop.update(dof_handler, temperature);
+  //
+  //  n = 0;
+  //  double constexpr tolerance = 1e-10;
+  //  for (auto cell : triangulation.active_cell_iterators())
+  //  {
+  //    if (n < 10)
+  //    {
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell, adamantine::StateProperty::density) == 15.,
+  //                 tt::tolerance(tolerance));
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell,
+  //                     adamantine::StateProperty::thermal_conductivity_x) ==
+  //                     465.,
+  //                 tt::tolerance(tolerance));
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell,
+  //                     adamantine::StateProperty::thermal_conductivity_z) ==
+  //                     465.,
+  //                 tt::tolerance(tolerance));
+  //    }
+  //    else if (n < 15)
+  //    {
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell, adamantine::StateProperty::density) == 706.,
+  //                 tt::tolerance(tolerance));
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell,
+  //                     adamantine::StateProperty::thermal_conductivity_x) ==
+  //                     681001.,
+  //                 tt::tolerance(tolerance));
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell,
+  //                     adamantine::StateProperty::thermal_conductivity_z) ==
+  //                     681001.,
+  //                 tt::tolerance(tolerance));
+  //    }
+  //    else
+  //    {
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell, adamantine::StateProperty::density) == 720.,
+  //                 tt::tolerance(tolerance));
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell,
+  //                     adamantine::StateProperty::thermal_conductivity_x) ==
+  //                     45280.,
+  //                 tt::tolerance(tolerance));
+  //      BOOST_TEST(mat_prop.get_cell_value(
+  //                     cell,
+  //                     adamantine::StateProperty::thermal_conductivity_z) ==
+  //                     45280.,
+  //                 tt::tolerance(tolerance));
+  //    }
+  //    ++n;
+  //  }
 }

@@ -267,18 +267,18 @@ void ThermalOperator<dim, use_table, p_order, fe_degree, MaterialStates,
   {
     unsigned int constexpr liquid =
         static_cast<unsigned int>(MaterialStates::State::liquid);
-    // Loop over the vectorized arrays
+
+    // Get the material id at this point
+    dealii::types::material_id const material_id = _material_id(cell, q)[0];
+
+    // Get the material thermodynamic properties
+    double const solidus =
+        _material_properties.get(material_id, Property::solidus);
+    double const liquidus =
+        _material_properties.get(material_id, Property::liquidus);
+
     for (unsigned int n = 0; n < temperature.size(); ++n)
     {
-      // Get the material id at this point
-      dealii::types::material_id const material_id = _material_id(cell, q)[n];
-
-      // Get the material thermodynamic properties
-      double const solidus =
-          _material_properties.get(material_id, Property::solidus);
-      double const liquidus =
-          _material_properties.get(material_id, Property::liquidus);
-
       // Update the state ratios
       if (temperature[n] < solidus)
         state_ratios[liquid][n] = 0.;
@@ -289,9 +289,9 @@ void ThermalOperator<dim, use_table, p_order, fe_degree, MaterialStates,
         state_ratios[liquid][n] =
             (temperature[n] - solidus) / (liquidus - solidus);
       }
-      state_ratios[solid][n] = 1. - state_ratios[liquid][n];
     }
-
+    state_ratios[solid] = 1.;
+    state_ratios[solid] -= state_ratios[liquid];
     _liquid_ratio(cell, q) = state_ratios[liquid];
   }
   else if constexpr (std::is_same_v<MaterialStates, SolidLiquidPowder>)

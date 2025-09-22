@@ -820,10 +820,10 @@ void MaterialProperty<dim, p_order, MaterialStates, MemorySpaceType>::
   {
     // View is initialized to zero in purpose
     _state_property_polynomials =
-        Kokkos::View<double *[g_n_thermal_state_properties]
-                         [MaterialStates::n_material_states][p_order + 1],
+        Kokkos::View<double[1][g_n_thermal_state_properties]
+                           [MaterialStates::n_material_states][p_order + 1],
                      typename MemorySpaceType::kokkos_space>(
-            "state_property_polynomials", n_material_ids);
+            "state_property_polynomials");
     // Mechanical properties only exist for the solid state. View is initialized
     // to zero in purpose
     _mechanical_properties_polynomials_host =
