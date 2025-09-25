@@ -904,7 +904,7 @@ void ThermalPhysics<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
   unsigned int constexpr n_material_states = MaterialStates::n_material_states;
   unsigned int constexpr direction_data_size = 2;
   unsigned int constexpr data_size_per_cell =
-      n_material_states + direction_data_size + 1;
+      n_material_states + direction_data_size + 1 + 1;
   std::vector<std::vector<double>> data_to_deserialize(
       triangulation.n_active_cells(), std::vector<double>(data_size_per_cell));
   dealii::parallel::distributed::CellDataTransfer<
@@ -913,6 +913,7 @@ void ThermalPhysics<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
   cell_data_trans.deserialize(data_to_deserialize);
   _deposition_cos.clear();
   _deposition_sin.clear();
+  _has_melted.clear();
 
   unsigned int cell_id = 0;
   std::vector<std::array<double, n_material_states>> cell_state;
@@ -941,7 +942,7 @@ void ThermalPhysics<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
       // Set the fe index
       auto fe_index = static_cast<unsigned int>(
           data_to_deserialize[cell_id]
-                             [n_material_states + direction_data_size]);
+                             [n_material_states + direction_data_size + 1]);
       cell->set_active_fe_index(fe_index);
 
       // Get the direction
@@ -951,6 +952,9 @@ void ThermalPhysics<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
             data_to_deserialize[cell_id][n_material_states]);
         _deposition_sin.push_back(
             data_to_deserialize[cell_id][n_material_states + 1]);
+        _has_melted.push_back(static_cast<bool>(
+            data_to_deserialize[cell_id]
+                               [n_material_states + direction_data_size]));
       }
     }
     ++cell_id;
@@ -999,7 +1003,7 @@ void ThermalPhysics<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
   unsigned int constexpr n_material_states = MaterialStates::n_material_states;
   unsigned int constexpr direction_data_size = 2;
   unsigned int constexpr data_size_per_cell =
-      n_material_states + direction_data_size + 1;
+      n_material_states + direction_data_size + 1 + 1;
   unsigned int locally_owned_cell_id = 0;
   unsigned int activated_cell_id = 0;
   unsigned int cell_id = 0;
@@ -1027,6 +1031,8 @@ void ThermalPhysics<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
             _deposition_cos[activated_cell_id];
         data_to_serialize[cell_id][n_material_states + 1] =
             _deposition_sin[activated_cell_id];
+        data_to_serialize[cell_id][n_material_states + direction_data_size] =
+            _has_melted[activated_cell_id];
         ++activated_cell_id;
       }
       else
@@ -1035,10 +1041,12 @@ void ThermalPhysics<dim, p_order, fe_degree, MaterialStates, MemorySpaceType,
         // obviously wrong value.
         data_to_serialize[cell_id][n_material_states] = 10.;
         data_to_serialize[cell_id][n_material_states + 1] = 10.;
+        data_to_serialize[cell_id][n_material_states + direction_data_size] =
+            10.;
       }
 
       // Store the FE index
-      data_to_serialize[cell_id][n_material_states + direction_data_size] =
+      data_to_serialize[cell_id][n_material_states + direction_data_size + 1] =
           fe_index;
 
       ++locally_owned_cell_id;
