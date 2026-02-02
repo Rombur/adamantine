@@ -3,6 +3,7 @@
  */
 
 #include <RayTracing.hh>
+#include <types.hh>
 #include <utils.hh>
 
 #include <deal.II/arborx/distributed_tree.h>
@@ -354,6 +355,17 @@ PointsValues<3> RayTracing::get_points_values()
             {
               dealii::Point<dim> face_intersection =
                   ray_origin + d * ray_direction;
+
+              // For the paper we are interested in filtering some of the points
+              if constexpr (dim == 3)
+              {
+                if ((face_intersection[axis<dim>::x] < 0.0) ||
+                    (face_intersection[axis<dim>::y] < 0.0))
+                {
+                  continue;
+                }
+              }
+
               // Check if the point intersect the first triangle
               if (point_in_triangle(point_0, point_1, point_2,
                                     face_intersection))
