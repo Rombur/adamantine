@@ -1,0 +1,123 @@
+{
+  "units":
+  {
+    "mesh": "millimeter"
+  },
+
+  "geometry":
+  {
+    "import_mesh": true,
+    "mesh_format": "abaqus",
+    "mesh_file": "mesh.inp",
+    "dim": 3,
+    "reset_material_id": true,
+    "material_deposition": true,
+    "material_deposition_method": "scan_paths",
+    "deposition_length": 3.5e-3,
+    "deposition_height": 7.1e-4,
+    "deposition_width": 3.5e-3,
+    "deposition_time": 50,
+    "deposition_lead_time": 0,
+    "material_height": 0.0
+  },
+
+  "physics":
+  {
+    "thermal": true,
+    "mechanical": false
+  },
+
+  "boundary":
+  {
+    "type": "convective"
+  },
+
+  "refinement":
+  {
+    "n_refinements": 0,
+    "time_steps_between_refinement": 10000000
+  },
+
+  "materials":
+  {
+    "n_materials": 1,
+    "property_format": "polynomial",
+    "material_0":
+    {
+      "initial_temperature": 300,
+      "new_material_temperature": 300,
+      "solid":
+      {
+        "specific_heat": 779.0,
+        "density": "7806.0",
+        "thermal_conductivity_x": "20.6",
+        "thermal_conductivity_y": "20.6",
+        "thermal_conductivity_z": "20.6",
+        "emissivity": 1.0,
+        "convection_heat_transfer_coef": 25.3758
+      },
+      "liquid":
+      {
+        "specific_heat": 779.0,
+        "density": "7806.0",
+        "thermal_conductivity_x": "20.6",
+        "thermal_conductivity_y": "20.6",
+        "thermal_conductivity_z": "20.6",
+        "emissivity": 0.35,
+        "convection_heat_transfer_coef": 25.3758
+      },
+      "solidus": 1729,
+      "liquidus": 1764,
+      "latent_heat": 229900,
+      "radiation_temperature_infty": 300,
+      "convection_temperature_infty": 300
+    }
+  },
+
+  "sources":
+  {
+    "n_beams": 1,
+    "beam_0":
+    {
+      "type": "goldak",
+      "depth": 3.5e-3,
+      "diameter": 3.5e-3,
+      "scan_path_file": "scan_path.inp",
+      "scan_path_file_format": "event_series",
+      "absorption_efficiency": 0.1763,
+      "max_power": 1.0
+    }
+  },
+
+  "time_stepping":
+  {
+    "method": "forward_euler",
+    "scan_path_for_duration": true,
+    "time_step": 6.5e-4
+  },
+
+  "post_processor":
+  {
+    "filename_prefix": "solution",
+    "time_steps_between_output": 7692,
+    "additional_output_refinement": 0
+  },
+
+  "discretization":
+  {
+    "thermal":
+    {
+      "fe_degree": 1,
+      "quadrature": "gauss"
+    }
+  },
+
+  "profiling":
+  {
+    "timer": false,
+    "caliper": "loop-report,runtime-report(calc.inclusive,region.count,profile.kokkos)"
+  },
+  
+  "memory_space": "host",
+  "verbose_output": true
+}
