@@ -182,6 +182,34 @@ Geometry<dim>::Geometry(
         cell->set_material_id(0);
       }
     }
+
+    // Set boundary id 0 at the bottom and 1 everywhere else
+    if constexpr (dim == 3)
+    {
+      double bottom = 1e6;
+      for (auto cell : _triangulation.active_cell_iterators())
+      {
+        for (auto face : cell->face_iterators())
+          if (face->at_boundary())
+          {
+            face->set_boundary_id(1);
+            double z = face->center()[2];
+            if (z < bottom)
+              z = bottom;
+          }
+      }
+
+      for (auto cell : _triangulation.active_cell_iterators())
+      {
+        for (auto face : cell->face_iterators())
+          if (face->at_boundary())
+          {
+            double z = face->center()[2];
+            if (z < bottom + 1e-4)
+              face->set_boundary_id(0);
+          }
+      }
+    }
   }
   else
   {
@@ -219,8 +247,8 @@ Geometry<dim>::Geometry(
       p2[axis<dim>::x] = x_max;
       p1[axis<dim>::z] = z_min;
       p2[axis<dim>::z] = z_max;
-      // STL files always contain 3D data but the code is instantiated for dim =
-      // 2 and dim = 3.
+      // STL files always contain 3D data but the code is instantiated for dim
+      // = 2 and dim = 3.
       if constexpr (dim == 3)
       {
         p1[axis<dim>::y] = y_min;
@@ -275,9 +303,9 @@ bool Geometry<dim>::is_within_stl(
   {
     ASSERT(_bvh, "BVH not initialized.");
 
-    // First we need to filter out the cells that intersects the triangles. The
-    // center of the cells may be within the STL shape which will create a false
-    // positive.
+    // First we need to filter out the cells that intersects the triangles.
+    // The center of the cells may be within the STL shape which will create a
+    // false positive.
     Kokkos::DefaultHostExecutionSpace space;
     Kokkos::View<int *, Kokkos::HostSpace> offset("offset", 0);
     Kokkos::View<Triangle *, Kokkos::HostSpace> intersected_triangles(
