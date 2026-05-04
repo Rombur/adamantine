@@ -1,0 +1,78 @@
+Starting non-ensemble simulation
+n_time_step: 1 time: 0 n_dofs (thermal) after mesh refinement: 6892
+n_time_step: 1 time: 0 n_dofs (thermal) after cell activation: 6972
+n_time_step: 10 time: 0.0065 n_dofs (mechanical): 20916
+n_time_step: 153849 time: 100.001 n_dofs (thermal) after cell activation: 7010
+n_time_step: 153850 time: 100.002 n_dofs (mechanical): 21030
+n_time_step: 230773 time: 150.002 n_dofs (thermal) after cell activation: 7052
+n_time_step: 230780 time: 150.007 n_dofs (mechanical): 21126
+n_time_step: 384621 time: 250.003 n_dofs (thermal) after cell activation: 7108
+n_time_step: 384630 time: 250.01 n_dofs (mechanical): 21324
+n_time_step: 461545 time: 300.004 n_dofs (thermal) after cell activation: 7132
+n_time_step: 461550 time: 300.008 n_dofs (mechanical): 21360
+n_time_step: 615393 time: 400.005 n_dofs (thermal) after cell activation: 7201
+n_time_step: 615400 time: 400.01 n_dofs (mechanical): 21603
+n_time_step: 692317 time: 450.005 n_dofs (thermal) after cell activation: 7212
+n_time_step: 692320 time: 450.008 n_dofs (mechanical): 21504
+n_time_step: 846165 time: 550.007 n_dofs (thermal) after cell activation: 7292
+n_time_step: 846170 time: 550.011 n_dofs (mechanical): 21876
+n_time_step: 923089 time: 600.007 n_dofs (thermal) after cell activation: 7292
+n_time_step: 923090 time: 600.008 n_dofs (mechanical): 21768
+n_time_step: 1076937 time: 700.008 n_dofs (thermal) after cell activation: 7372
+n_time_step: 1076940 time: 700.011 n_dofs (mechanical): 22116
+n_time_step: 1153861 time: 750.009 n_dofs (thermal) after cell activation: 7372
+n_time_step: 1153870 time: 750.015 n_dofs (mechanical): 22116
+n_time_step: 1307709 time: 850.01 n_dofs (thermal) after cell activation: 7372
+n_time_step: 1307710 time: 850.011 n_dofs (mechanical): 22116
+n_time_step: 1384633 time: 900.011 n_dofs (thermal) after cell activation: 7372
+n_time_step: 1384640 time: 900.016 n_dofs (mechanical): 22044
+Simulation done
+
+Loop summary:
+------------
+
+Loop      Iterations Time (s)    Iter/s (min) Iter/s (max) Iter/s (avg) 
+main_loop    1846177 5488.350068   175.046346   397.946495   336.381398 
+
+Iteration summary (main_loop):
+-----------------
+
+Block   Iterations Time (s)   Iter/s     
+      0      92380 290.455227 318.052462 
+  92308      92310 257.542827 358.425824 
+ 184616      92387 278.110913 332.194803 
+ 276924      92197 269.911475 341.582364 
+ 369232      92396 268.664106 343.908985 
+ 461540      92280 294.715365 313.115674 
+ 553848      92320 262.601575 351.559201 
+ 646156      92230 300.112016 307.318584 
+ 738464      92430 270.098491 342.208502 
+ 830772      92180 280.347810 328.805850 
+ 923080      92421 298.779310 309.328647 
+1015388      92169 266.991542 345.213183 
+1107696      92410 304.029204 303.951063 
+1200004      92320 261.670901 352.809577 
+1292312      92218 268.833127 343.030641 
+1384620      92302 279.007924 330.822145 
+1476928      92390 261.934448 352.721838 
+1569236      92263 259.487775 355.558177 
+1661544      92297 258.631303 356.867088 
+1753852      92277 256.419241 359.867690 
+Path                                             Min time/rank Max time/rank Avg time/rank Time %     Calls (min)    Calls (max)    Calls (avg)    Calls (total)   
+main                                               5488.680496   5489.210732   5489.043960 100.000000       1.000000       1.000000       1.000000       12.000000 
+  run                                              5488.680201   5489.210423   5489.043662  99.999995       1.000000       1.000000       1.000000       12.000000 
+    assemble mechanical matrix                        0.019601      0.020488      0.020173   0.000368       1.000000       1.000000       1.000000       12.000000 
+    initialize mechanical matrix preconditioner       0.090300      0.090485      0.090392   0.001647       1.000000       1.000000       1.000000       12.000000 
+    assemble mechanical rhs                           0.002500      0.002691      0.002589   0.000047       1.000000       1.000000       1.000000       12.000000 
+    solve mechanical system                           0.017228      0.017875      0.017663   0.000322       1.000000       1.000000       1.000000       12.000000 
+    output_pvtu                                       0.005729      0.009801      0.007902   0.000144       1.000000       1.000000       1.000000       12.000000 
+    main_loop                                      5488.342373   5488.350052   5488.344498  99.987257 1846178.000000 1846178.000000 1846178.000000 22154136.000000 
+      refine_mesh                                     0.002401      0.009478      0.004295   0.000078       1.000000       1.000000       1.000000       12.000000 
+      add material                                    0.531411      0.548130      0.536562   0.009775      13.000000      13.000000      13.000000      156.000000 
+        refine triangulation                          0.196517      0.210227      0.200949   0.003661      13.000000      13.000000      13.000000      156.000000 
+      evaluate_thermal_physics                      346.921625    508.409706    380.570242   6.933270 1846176.000000 1846176.000000 1846176.000000 22154112.000000 
+      assemble mechanical matrix                    111.916799    114.937755    113.512430   2.067982    9349.000000    9349.000000    9349.000000   112188.000000 
+      initialize mechanica~~atrix preconditioner     51.671469     52.719621     52.359135   0.953884    9349.000000    9349.000000    9349.000000   112188.000000 
+      assemble mechanical rhs                       302.430438    303.730552    303.151469   5.522846  184809.000000  184809.000000  184809.000000  2217708.000000 
+      solve mechanical system                      2740.056009   2828.499732   2764.482251  50.363638  184809.000000  184809.000000  184809.000000  2217708.000000 
+      output_pvtu                                     1.835817      2.015712      1.914141   0.034872     240.000000     240.000000     240.000000     2880.000000 
