@@ -14,11 +14,11 @@ color_ideal = colors[4]
 n_procs = [1, 2, 4, 8, 12]
 
 
-total_time = [20681.9, 10468.9, 5262.7, 4326.9, 4689.3]
-solve_time = [13742, 6483.8, 3084.8, 2309.3, 2264.9]
-rhs_time = [1573.6, 819.8, 435.5, 323.4, 350.5]
-matrix_time = [352.3, 240.8, 120.2, 87.4, 79.8]
-average_throughput = [57.9, 114.3, 227.5, 276.7, 255.3]
+total_time = [20673.3, 10504.2, 5518.2, 4321.1, 4665.7]
+solve_time = [13807.4, 6504.7, 3094.0, 2311.3, 2265.2]
+rhs_time = [1564.4, 823.7, 675.7, 323.6, 307.3]
+matrix_time = [355.0, 240.4, 121.0, 87.4, 79.7]
+average_throughput = [57.9, 114.0, 217.0, 277.1, 256.6]
 
 def compute_ideal_time(time):
     return [time[0]/n_procs[0], time[0]/n_procs[1], time[0]/n_procs[2],
