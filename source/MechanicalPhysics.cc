@@ -33,6 +33,7 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
     : _geometry(geometry), _boundary(boundary),
       _material_properties(material_properties),
       _dof_handler(_geometry.get_triangulation()),
+      _reference_temperatures(reference_temperatures),
       _solution_transfer(_dof_handler),
       _cell_data_transfer(
           dynamic_cast<const dealii::parallel::distributed::Triangulation<dim>
@@ -96,6 +97,7 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
                  std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
   _back_stress.resize(n_active_cells,
                       std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
+  _thermal_stress.resize(n_active_cells, std::vector<double>(n_quad_pts));
 }
 
 template <int dim, int n_materials, int p_order, typename MaterialStates,
@@ -148,6 +150,9 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
         std::vector<bool> const &has_melted,
         std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
 {
+  _thermal_dof_handler = &thermal_dof_handler;
+  _temperature = temperature;
+  _has_melted = has_melted;
   _mechanical_operator->update_temperature(thermal_dof_handler, temperature,
                                            has_melted);
   _mechanical_operator->assemble_rhs(body_forces);
@@ -163,12 +168,12 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
 
   _data_to_transfer.clear();
   unsigned int const n_quad_pts = _q_collection.max_n_quadrature_points();
-  unsigned int const n_doubles_per_quad_plastic = 1;
+  unsigned int const n_doubles_per_quad_scalar = 2;
   unsigned int const n_doubles_per_quad_stress =
       dealii::SymmetricTensor<2, dim>::n_independent_components;
 
   unsigned int const n_doubles_per_quad =
-      n_doubles_per_quad_plastic + n_doubles_per_quad_stress * 2;
+      n_doubles_per_quad_scalar + n_doubles_per_quad_stress * 2;
   std::vector<double> dummy_cell_data(n_quad_pts * n_doubles_per_quad,
                                       std::numeric_limits<double>::infinity());
 
@@ -178,13 +183,16 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
     if (cell->is_locally_owned())
     {
       std::vector<double> cell_data(n_quad_pts * n_doubles_per_quad);
-      unsigned int const stress_offset =
-          n_quad_pts * n_doubles_per_quad_plastic;
+      unsigned int const thermal_stress_offset = n_quad_pts;
+      unsigned int const stress_offset = n_quad_pts * n_doubles_per_quad_scalar;
       unsigned int const back_stress_offset =
-          n_quad_pts * (n_doubles_per_quad_plastic + n_doubles_per_quad_stress);
+          n_quad_pts * (n_doubles_per_quad_scalar + n_doubles_per_quad_stress);
 
       std::copy(_plastic_internal_variable[cell_id].begin(),
                 _plastic_internal_variable[cell_id].end(), cell_data.begin());
+      std::copy(_thermal_stress[cell_id].begin(),
+                _thermal_stress[cell_id].end(),
+                cell_data.begin() + thermal_stress_offset);
 
       for (unsigned int quad = 0; quad < n_quad_pts; ++quad)
       {
@@ -231,17 +239,18 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
 
   _plastic_internal_variable.resize(n_active_cells,
                                     std::vector<double>(n_quad_pts));
+  _thermal_stress.resize(n_active_cells, std::vector<double>(n_quad_pts));
   _stress.resize(n_active_cells,
                  std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
   _back_stress.resize(n_active_cells,
                       std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
 
-  unsigned int const n_doubles_per_quad_plastic = 1;
+  unsigned int const n_doubles_per_quad_scalar = 2;
   unsigned int const n_doubles_per_quad_stress =
       dealii::SymmetricTensor<2, dim>::n_independent_components;
 
   unsigned int const n_doubles_per_quad =
-      n_doubles_per_quad_plastic + n_doubles_per_quad_stress * 2;
+      n_doubles_per_quad_scalar + n_doubles_per_quad_stress * 2;
   std::vector<std::vector<double>> data_to_unpack(
       n_active_cells, std::vector<double>(n_doubles_per_quad * n_quad_pts));
   _cell_data_transfer.unpack(data_to_unpack);
@@ -251,14 +260,17 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   {
     if (cell->is_locally_owned())
     {
-      unsigned int const stress_offset =
-          n_quad_pts * n_doubles_per_quad_plastic;
+      unsigned int const thermal_stress_offset = n_quad_pts;
+      unsigned int const stress_offset = n_quad_pts * n_doubles_per_quad_scalar;
       unsigned int const back_stress_offset =
-          n_quad_pts * (n_doubles_per_quad_plastic + n_doubles_per_quad_stress);
+          n_quad_pts * (n_doubles_per_quad_scalar + n_doubles_per_quad_stress);
 
       std::copy(data_to_unpack[cell_id].begin(),
-                data_to_unpack[cell_id].begin() + stress_offset,
+                data_to_unpack[cell_id].begin() + thermal_stress_offset,
                 _plastic_internal_variable[cell_id].begin());
+      std::copy(data_to_unpack[cell_id].begin() + thermal_stress_offset,
+                data_to_unpack[cell_id].begin() + stress_offset,
+                _thermal_stress[cell_id].begin());
 
       for (unsigned int quad = 0; quad < n_quad_pts; ++quad)
       {
@@ -288,6 +300,9 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
         std::vector<bool> const &has_melted, bool rebuild_matrix,
         std::vector<std::shared_ptr<BodyForce<dim>>> const &body_forces)
 {
+  _thermal_dof_handler = &thermal_dof_handler;
+  _temperature = temperature;
+  _has_melted = has_melted;
   _mechanical_operator->update_temperature(thermal_dof_handler, temperature,
                                            has_melted);
   // Update the active fe indices, the plastic variables, and the displacement.
@@ -295,6 +310,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   unsigned int cell_id = 0;
   std::vector<std::vector<double>> saved_old_displacement;
   std::vector<std::vector<double>> tmp_plastic_internal_variable;
+  std::vector<std::vector<double>> tmp_thermal_stress;
   std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> tmp_stress;
   std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> tmp_back_stress;
   // The number of cells to activate/deactive should be small, so we can
@@ -304,6 +320,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   std::vector<dealii::types::global_dof_index> global_dof_indices(
       n_dofs_per_cell);
   tmp_plastic_internal_variable.reserve(n_old_active_cells);
+  tmp_thermal_stress.reserve(n_old_active_cells);
   tmp_stress.reserve(n_old_active_cells);
   tmp_back_stress.reserve(_back_stress.size());
   // First we save _old_displacement if it exists
@@ -362,6 +379,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
           // The cells is unchanged, we just copy the plastic variables as-is.
           tmp_plastic_internal_variable.push_back(
               _plastic_internal_variable[cell_id]);
+          tmp_thermal_stress.push_back(_thermal_stress[cell_id]);
           tmp_stress.push_back(_stress[cell_id]);
           tmp_back_stress.push_back(_back_stress[cell_id]);
         }
@@ -373,6 +391,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
               cell, StateProperty::elastic_limit);
           tmp_plastic_internal_variable.push_back(
               std::vector<double>(n_quad_pts, elastic_limit));
+          tmp_thermal_stress.push_back(std::vector<double>(n_quad_pts));
           tmp_stress.push_back(
               std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
           tmp_back_stress.push_back(
@@ -393,6 +412,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
         cell->set_active_fe_index(1);
         tmp_plastic_internal_variable.push_back(std::vector<double>(
             n_quad_pts, std::numeric_limits<double>::signaling_NaN()));
+        tmp_thermal_stress.push_back(std::vector<double>(n_quad_pts));
         tmp_stress.push_back(
             std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
         tmp_back_stress.push_back(
@@ -403,6 +423,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
     {
       tmp_plastic_internal_variable.push_back(std::vector<double>(
           n_quad_pts, std::numeric_limits<double>::signaling_NaN()));
+      tmp_thermal_stress.push_back(std::vector<double>(n_quad_pts));
       tmp_stress.push_back(
           std::vector<dealii::SymmetricTensor<2, dim>>(n_quad_pts));
       tmp_back_stress.push_back(
@@ -428,6 +449,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   }
 
   _plastic_internal_variable.swap(tmp_plastic_internal_variable);
+  _thermal_stress.swap(tmp_thermal_stress);
   _stress.swap(tmp_stress);
   _back_stress.swap(tmp_back_stress);
 
@@ -553,7 +575,39 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
       _fe_collection, _q_collection, dealii::update_gradients);
   unsigned int const n_q_points = _q_collection.max_n_quadrature_points();
   std::vector<dealii::SymmetricTensor<2, dim>> strain_tensor(n_q_points);
+  std::vector<double> temperature_values(n_q_points);
   const dealii::FEValuesExtractors::Vector displacement_extr(0);
+  std::unique_ptr<dealii::hp::FEValues<dim>> temperature_hp_fe_values;
+  std::vector<unsigned int> cell_indices;
+  if (!_reference_temperatures.empty())
+  {
+    _temperature.update_ghost_values();
+    temperature_hp_fe_values = std::make_unique<dealii::hp::FEValues<dim>>(
+        _thermal_dof_handler->get_fe_collection(), _q_collection,
+        dealii::update_values);
+
+    auto &triangulation = _dof_handler.get_triangulation();
+    cell_indices.resize(triangulation.n_active_cells());
+    unsigned int thermal_cell_index = 0;
+    for (auto const &tria_cell :
+         triangulation.active_cell_iterators() |
+             dealii::IteratorFilters::LocallyOwnedCell())
+    {
+      dealii::TriaIterator<dealii::DoFCellAccessor<dim, dim, false>>
+          temperature_cell(&triangulation, tria_cell->level(),
+                           tria_cell->index(), _thermal_dof_handler);
+      if (temperature_cell->active_fe_index() == 0)
+      {
+        dealii::TriaIterator<dealii::DoFCellAccessor<dim, dim, false>>
+            displacement_cell(&triangulation, tria_cell->level(),
+                              tria_cell->index(), &_dof_handler);
+        if (displacement_cell->active_fe_index() == 0)
+          cell_indices[displacement_cell->active_cell_index()] =
+              thermal_cell_index;
+        ++thermal_cell_index;
+      }
+    }
+  }
   unsigned int cell_id = 0;
   for (auto const &cell : _dof_handler.active_cell_iterators())
   {
@@ -571,6 +625,24 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
       fe_values[displacement_extr].get_function_symmetric_gradients(
           displacement, strain_tensor);
 
+      double reference_temperature = 0.;
+      if (!_reference_temperatures.empty())
+      {
+        auto &triangulation = _dof_handler.get_triangulation();
+        dealii::TriaIterator<dealii::DoFCellAccessor<dim, dim, false>>
+            temperature_cell(&triangulation, cell->level(), cell->index(),
+                             _thermal_dof_handler);
+        temperature_hp_fe_values->reinit(temperature_cell);
+        auto const &temperature_fe_values =
+            temperature_hp_fe_values->get_present_fe_values();
+        temperature_fe_values.get_function_values(_temperature,
+                                                  temperature_values);
+        reference_temperature =
+            _has_melted[cell_indices[cell->active_cell_index()]]
+                ? _reference_temperatures[temperature_cell->material_id()]
+                : _reference_temperatures.back();
+      }
+
       double const lambda = _material_properties.get_mechanical_property(
           cell, StateProperty::lame_first_parameter);
       double const mu = _material_properties.get_mechanical_property(
@@ -581,6 +653,9 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
       double const iso_hardening_coef =
           _material_properties.get_mechanical_property(
               cell, StateProperty::isotropic_hardening);
+      double const alpha = _material_properties.get_mechanical_property(
+          cell, StateProperty::thermal_expansion_coef);
+      double const beta = (3. * lambda + 2. * mu) * alpha;
       dealii::SymmetricTensor<4, dim> stiffness_tensor =
           lambda * dealii::outer_product(dealii::unit_symmetric_tensor<dim>(),
                                          dealii::unit_symmetric_tensor<dim>()) +
@@ -591,11 +666,20 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
         // Compute the trial elastic stress.
         dealii::SymmetricTensor<2, dim> elastic_stress = _stress[cell_id][q];
         elastic_stress += stiffness_tensor * strain_tensor[q];
+        if (!_reference_temperatures.empty())
+        {
+          double const current_thermal_stress =
+              beta * (temperature_values[q] - reference_temperature);
+          elastic_stress -=
+              (current_thermal_stress - _thermal_stress[cell_id][q]) *
+              dealii::unit_symmetric_tensor<dim>();
+          _thermal_stress[cell_id][q] = current_thermal_stress;
+        }
 
         auto stress_deviator = dealii::deviator(elastic_stress);
         auto effective_stress = stress_deviator - _back_stress[cell_id][q];
         double const effective_stress_norm = effective_stress.norm();
-        if (effective_stress_norm < _plastic_internal_variable[cell_id][q])
+        if (effective_stress_norm <= _plastic_internal_variable[cell_id][q])
         {
           // The deformation is elastic. We just update the stress with the
           // elastic stress.
