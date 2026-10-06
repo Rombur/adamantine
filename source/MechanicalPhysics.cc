@@ -591,8 +591,6 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   rhs_device.import_elements(rw_vector, dealii::VectorOperation::insert);
 
   // Solve the mechanical problem assuming that the deformation is elastic
-  // TODO check that we are computing only difference of the displacement
-  // compared to the previous time step!!
   unsigned int const max_iter = _dof_handler.n_dofs() / 10;
   double const tol = 1e-12 * _mechanical_operator->rhs().l2_norm();
   dealii::SolverControl solver_control(max_iter, tol);
@@ -607,40 +605,17 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   displacement_host.import_elements(rw_vector, dealii::VectorOperation::insert);
   _affine_constraints.distribute(displacement_host);
 
-  // Compute the new stress assuming the deformation is elastic.
-  // If the stress is under the yield criterion, the deformation is elastic and
-  // we are done. Otherwise we need to use the radial return algorithm to
-  // compute the plastic deformation.
-  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-      incremental_displacement(
-          locally_owned_dofs, locally_relevant_dofs,
-          _mechanical_operator->rhs().get_mpi_communicator());
-  incremental_displacement = displacement_host;
-  if (_old_displacement.size() > 0)
-  {
-    incremental_displacement -= _old_displacement;
-  }
-  incremental_displacement.update_ghost_values();
-  compute_stress(incremental_displacement);
-  update_state(displacement_host);
+  // Evaluate the trial state using the displacement increment from the
+  // previous time step. If the stress is under the yield criterion, the
+  // deformation is elastic and we are done. Otherwise we need to use the
+  // radial return algorithm to compute the plastic deformation.
+  auto const incremental_displacement =
+      compute_incremental_displacement(displacement_host);
+  evaluate_trial_state(incremental_displacement);
 
-#ifdef ADAMANTINE_WITH_CALIPER
-  CALI_MARK_END("solve mechanical system");
-#endif
-
-  return _old_displacement;
-}
-
-template <int dim, int n_materials, int p_order, typename MaterialStates,
-          typename MemorySpaceType>
-void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
-                       MemorySpaceType>::
-    update_state(
-        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-            &displacement)
-{
+  // Commit the trial material state and displacement history after the
+  // mechanical solve has converged.
   _state = _trial_state;
-
   if (_old_displacement.size() == 0)
   {
     dealii::IndexSet const locally_owned_dofs =
@@ -651,7 +626,29 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
         locally_owned_dofs, locally_relevant_dofs,
         _mechanical_operator->rhs().get_mpi_communicator());
   }
-  _old_displacement = displacement;
+  _old_displacement = displacement_host;
+
+#ifdef ADAMANTINE_WITH_CALIPER
+  CALI_MARK_END("solve mechanical system");
+#endif
+
+  return _old_displacement;
+}
+
+template <int dim, int n_materials, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
+MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
+    compute_incremental_displacement(
+        dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+            &displacement) const
+{
+  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
+      incremental_displacement = displacement;
+  if (_old_displacement.size() > 0)
+    incremental_displacement -= _old_displacement;
+  incremental_displacement.update_ghost_values();
+  return incremental_displacement;
 }
 
 template <int dim, int n_materials, int p_order, typename MaterialStates,
@@ -662,18 +659,9 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
         dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
             &displacement)
 {
-  dealii::IndexSet const locally_owned_dofs = _dof_handler.locally_owned_dofs();
-  dealii::IndexSet const locally_relevant_dofs =
-      dealii::DoFTools::extract_locally_relevant_dofs(_dof_handler);
-  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-      incremental_displacement(
-          locally_owned_dofs, locally_relevant_dofs,
-          _mechanical_operator->rhs().get_mpi_communicator());
-  incremental_displacement = displacement;
-  if (_old_displacement.size() > 0)
-    incremental_displacement -= _old_displacement;
-  incremental_displacement.update_ghost_values();
-  compute_stress(incremental_displacement);
+  auto const incremental_displacement =
+      compute_incremental_displacement(displacement);
+  evaluate_trial_state(incremental_displacement);
 
   std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> trial_stress(
       _trial_state.size());
@@ -683,18 +671,16 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
     for (unsigned int q = 0; q < _trial_state[cell_id].size(); ++q)
       trial_stress[cell_id][q] = _trial_state[cell_id][q].stress;
   }
-  auto residual = _mechanical_operator->assemble_internal_force(trial_stress);
-  residual -= _mechanical_operator->rhs();
-  return residual;
+  return _mechanical_operator->assemble_residual(trial_stress);
 }
 
 template <int dim, int n_materials, int p_order, typename MaterialStates,
           typename MemorySpaceType>
 void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
                        MemorySpaceType>::
-    compute_stress(
+    evaluate_trial_state(
         dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-            &displacement)
+            &incremental_displacement)
 {
   dealii::hp::FEValues<dim> displacement_hp_fe_values(
       _fe_collection, _q_collection, dealii::update_gradients);
@@ -748,7 +734,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
       auto const &fe_values = displacement_hp_fe_values.get_present_fe_values();
 
       fe_values[displacement_extr].get_function_symmetric_gradients(
-          displacement, strain_tensor);
+          incremental_displacement, strain_tensor);
 
       double reference_temperature = 0.;
       if (!_reference_temperatures.empty())

@@ -351,16 +351,6 @@ BOOST_AUTO_TEST_CASE(elastoplastic_residual)
   auto residual_difference = first_trial_residual;
   residual_difference -= repeated_trial_residual;
   BOOST_CHECK_SMALL(residual_difference.l2_norm(), 1.e-12);
-
-  // Once the trial state is used to update the state, the same displacement is
-  // the starting point for the next step and must reproduce the same stress
-  // residual.
-  mechanical_physics.update_state(trial_displacement);
-  auto const next_step_residual =
-      mechanical_physics.evaluate_residual(trial_displacement);
-  residual_difference = first_trial_residual;
-  residual_difference -= next_step_residual;
-  BOOST_CHECK_SMALL(residual_difference.l2_norm(), 1.e-12);
 }
 
 BOOST_AUTO_TEST_CASE(fe_nothing)
@@ -1069,6 +1059,41 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
   for (auto const &cell_state : state)
     for (auto const &value : cell_state)
       BOOST_CHECK_SMALL((value.stress - expected_stress_1).norm(), 1.e-12);
+
+  // Residual evaluation must use the current temperature and state while
+  // leaving the state unchanged. Repeating the evaluation at the same
+  // displacement must therefore produce the same residual.
+  auto const state_before_residual =
+      mechanical_physics.get_constitutive_state();
+  auto const first_residual =
+      mechanical_physics.evaluate_residual(displacement);
+  auto const repeated_residual =
+      mechanical_physics.evaluate_residual(displacement);
+  auto residual_difference = first_residual;
+  residual_difference -= repeated_residual;
+  BOOST_CHECK_SMALL(residual_difference.l2_norm(), 1.e-12);
+  auto const &state_after_residual =
+      mechanical_physics.get_constitutive_state();
+  for (unsigned int cell_id = 0; cell_id < state_before_residual.size();
+       ++cell_id)
+    for (unsigned int q = 0; q < state_before_residual[cell_id].size(); ++q)
+    {
+      BOOST_CHECK_SMALL((state_after_residual[cell_id][q].stress -
+                         state_before_residual[cell_id][q].stress)
+                            .norm(),
+                        1.e-14);
+      BOOST_CHECK_SMALL((state_after_residual[cell_id][q].back_stress -
+                         state_before_residual[cell_id][q].back_stress)
+                            .norm(),
+                        1.e-14);
+      BOOST_CHECK_SMALL(
+          state_after_residual[cell_id][q].plastic_internal_variable -
+              state_before_residual[cell_id][q].plastic_internal_variable,
+          1.e-14);
+      BOOST_CHECK_SMALL(state_after_residual[cell_id][q].thermal_stress -
+                            state_before_residual[cell_id][q].thermal_stress,
+                        1.e-14);
+    }
 
   // A second increment checks both the stored plastic history and that only
   // the change in thermal stress is applied at the next solve.
