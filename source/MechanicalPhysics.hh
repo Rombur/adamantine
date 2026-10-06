@@ -110,13 +110,6 @@ public:
           &displacement);
 
   /**
-   * Update the material state and displacement after convergence.
-   */
-  void update_state(
-      dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-          &displacement);
-
-  /**
    * Return the DoFHandler.
    */
   dealii::DoFHandler<dim> &get_dof_handler();
@@ -160,12 +153,20 @@ private:
       MechanicalConstitutiveState<dim> const &state) const;
 
   /**
-   * Evaluate the constitutive response at all quadrature points and store the
-   * result in the trial state.
+   * Compute the displacement increment relative to the previous displacement.
    */
-  void compute_stress(
+  dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
+  compute_incremental_displacement(
       dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
-          &displacement);
+          &displacement) const;
+
+  /**
+   * Evaluate the constitutive response at all quadrature points for the
+   * displacement increment and store the result in the trial state.
+   */
+  void evaluate_trial_state(
+      dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+          &incremental_displacement);
 
   /**
    * Associated Geometry.
