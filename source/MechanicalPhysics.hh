@@ -110,9 +110,9 @@ public:
           &displacement);
 
   /**
-   * Commit the trial material state and displacement after convergence.
+   * Update the material state and displacement after convergence.
    */
-  void commit_trial_state(
+  void update_state(
       dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
           &displacement);
 
@@ -127,23 +127,37 @@ public:
   dealii::AffineConstraints<double> &get_affine_constraints();
 
   /**
+   * Return the constitutive state associated to each quadrature point.
+   */
+  std::vector<std::vector<MechanicalConstitutiveState<dim>>> const &
+  get_constitutive_state() const;
+
+  /**
+   * Replace the constitutive state and discard any trial state.
+   *
+   * This is used to initialize or restore material history. Normal material
+   * evolution must proceed through the trial-state and update interfaces.
+   */
+  void set_constitutive_state(
+      std::vector<std::vector<MechanicalConstitutiveState<dim>>> const &state);
+
+  /**
    * Return the stress tensor associated to each quadrature point.
    */
-  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> &
-  get_stress_tensor();
+  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>>
+  get_stress_tensor() const;
 
 private:
   /**
-   * Evaluate the local constitutive response without modifying the committed
-   * state.
+   * Evaluate the local constitutive response without modifying the state.
    */
-  MechanicalConstitutiveState<dim> constitutive_update(
+  MechanicalConstitutiveState<dim> evaluate_constitutive_response(
       dealii::SymmetricTensor<2, dim> const &strain_increment,
       double const temperature, double const reference_temperature,
       double const lambda, double const mu, double const plastic_modulus,
       double const iso_hardening_coef, double const alpha,
       bool const include_thermal_loading,
-      MechanicalConstitutiveState<dim> const &committed_state) const;
+      MechanicalConstitutiveState<dim> const &state) const;
 
   /**
    * Evaluate the constitutive response at all quadrature points and store the
@@ -152,11 +166,6 @@ private:
   void compute_stress(
       dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
           &displacement);
-
-  /**
-   * Reset the trial state to the committed state.
-   */
-  void reset_trial_state();
 
   /**
    * Associated Geometry.
@@ -224,44 +233,14 @@ private:
       _old_displacement;
 
   /**
-   * Plastic internal variable related to the strain
+   * Constitutive state at each (cell, quadrature point).
    */
-  std::vector<std::vector<double>> _plastic_internal_variable;
+  std::vector<std::vector<MechanicalConstitutiveState<dim>>> _state;
 
   /**
-   * Hydrostatic thermal stress at the previous mechanical solve.
+   * Trial constitutive state at each (cell, quadrature point).
    */
-  std::vector<std::vector<double>> _thermal_stress;
-
-  /**
-   * Stress tensor at each (cell, quadrature point).
-   */
-  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _stress;
-
-  /**
-   * Back stress tensor at each (cell, quadrature point).
-   */
-  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _back_stress;
-
-  /**
-   * Trial plastic internal variable related to the strain.
-   */
-  std::vector<std::vector<double>> _trial_plastic_internal_variable;
-
-  /**
-   * Trial hydrostatic thermal stress.
-   */
-  std::vector<std::vector<double>> _trial_thermal_stress;
-
-  /**
-   * Trial stress tensor at each (cell, quadrature point).
-   */
-  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _trial_stress;
-
-  /**
-   * Trial back stress tensor at each (cell, quadrature point).
-   */
-  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _trial_back_stress;
+  std::vector<std::vector<MechanicalConstitutiveState<dim>>> _trial_state;
 
   /**
    * Solution transfer object used for updating _old_displacement when the
@@ -283,9 +262,8 @@ private:
       _closest_quad_point_adaptation;
 
   /**
-   * Cell data transfer object used for updating _plastic_internal_variable,
-   * _thermal_stress, _stress, and _back_stress when the triangulation is
-   * updated when adding material
+   * Cell data transfer object used for updating the constitutive state when
+   * the triangulation is updated when adding material.
    */
   dealii::parallel::distributed::CellDataTransfer<
       dim, dim, std::vector<std::vector<std::vector<double>>>>
@@ -317,11 +295,22 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
 
 template <int dim, int n_materials, int p_order, typename MaterialStates,
           typename MemorySpaceType>
-inline std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> &
+inline std::vector<std::vector<MechanicalConstitutiveState<dim>>> const &
 MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
-                  MemorySpaceType>::get_stress_tensor()
+                  MemorySpaceType>::get_constitutive_state() const
 {
-  return _stress;
+  return _state;
+}
+
+template <int dim, int n_materials, int p_order, typename MaterialStates,
+          typename MemorySpaceType>
+inline void
+MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
+    set_constitutive_state(
+        std::vector<std::vector<MechanicalConstitutiveState<dim>>> const &state)
+{
+  _state = state;
+  _trial_state = _state;
 }
 
 } // namespace adamantine
