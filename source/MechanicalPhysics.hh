@@ -19,6 +19,15 @@
 
 namespace adamantine
 {
+template <int dim>
+struct MechanicalConstitutiveState
+{
+  dealii::SymmetricTensor<2, dim> stress;
+  dealii::SymmetricTensor<2, dim> back_stress;
+  double plastic_internal_variable = 0.;
+  double thermal_stress = 0.;
+};
+
 template <int dim, int n_materials, int p_order, typename MaterialStates,
           typename MemorySpaceType>
 class MechanicalPhysics
@@ -101,6 +110,13 @@ public:
           &displacement);
 
   /**
+   * Commit the trial material state and displacement after convergence.
+   */
+  void commit_trial_state(
+      dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
+          &displacement);
+
+  /**
    * Return the DoFHandler.
    */
   dealii::DoFHandler<dim> &get_dof_handler();
@@ -117,12 +133,30 @@ public:
   get_stress_tensor();
 
 private:
-  // Compute the stress using linear combination of isotropic and kinematic
-  // hardening in the book Plasticity Modeling & Computation from Ronaldo I.
-  // Borja.
+  /**
+   * Evaluate the local constitutive response without modifying the committed
+   * state.
+   */
+  MechanicalConstitutiveState<dim> constitutive_update(
+      dealii::SymmetricTensor<2, dim> const &strain_increment,
+      double const temperature, double const reference_temperature,
+      double const lambda, double const mu, double const plastic_modulus,
+      double const iso_hardening_coef, double const alpha,
+      bool const include_thermal_loading,
+      MechanicalConstitutiveState<dim> const &committed_state) const;
+
+  /**
+   * Evaluate the constitutive response at all quadrature points and store the
+   * result in the trial state.
+   */
   void compute_stress(
       dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
           &displacement);
+
+  /**
+   * Reset the trial state to the committed state.
+   */
+  void reset_trial_state();
 
   /**
    * Associated Geometry.
@@ -208,6 +242,26 @@ private:
    * Back stress tensor at each (cell, quadrature point).
    */
   std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _back_stress;
+
+  /**
+   * Trial plastic internal variable related to the strain.
+   */
+  std::vector<std::vector<double>> _trial_plastic_internal_variable;
+
+  /**
+   * Trial hydrostatic thermal stress.
+   */
+  std::vector<std::vector<double>> _trial_thermal_stress;
+
+  /**
+   * Trial stress tensor at each (cell, quadrature point).
+   */
+  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _trial_stress;
+
+  /**
+   * Trial back stress tensor at each (cell, quadrature point).
+   */
+  std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> _trial_back_stress;
 
   /**
    * Solution transfer object used for updating _old_displacement when the
