@@ -327,6 +327,40 @@ BOOST_AUTO_TEST_CASE(elastoplastic_residual)
   // balance the external load.
   auto const residual = mechanical_physics.evaluate_residual(displacement);
   BOOST_CHECK(residual.l2_norm() > 1.e-8);
+
+  // A trial evaluation must start from the same committed state each time.
+  // Use a different displacement so that the local update is nontrivial.
+  auto const committed_stress = mechanical_physics.get_stress_tensor();
+  auto trial_displacement = displacement;
+  trial_displacement *= 2.;
+  trial_displacement.update_ghost_values();
+  auto const first_trial_residual =
+      mechanical_physics.evaluate_residual(trial_displacement);
+
+  // Evaluating a trial state must not modify the committed stress.
+  auto const &stress_after_trial = mechanical_physics.get_stress_tensor();
+  BOOST_TEST(stress_after_trial.size() == committed_stress.size());
+  for (unsigned int cell_id = 0; cell_id < committed_stress.size(); ++cell_id)
+    for (unsigned int q = 0; q < committed_stress[cell_id].size(); ++q)
+      BOOST_CHECK_SMALL(
+          (stress_after_trial[cell_id][q] - committed_stress[cell_id][q])
+              .norm(),
+          1.e-14);
+
+  auto const repeated_trial_residual =
+      mechanical_physics.evaluate_residual(trial_displacement);
+  auto residual_difference = first_trial_residual;
+  residual_difference -= repeated_trial_residual;
+  BOOST_CHECK_SMALL(residual_difference.l2_norm(), 1.e-12);
+
+  // Once the trial state is committed, the same displacement is the starting
+  // point for the next step and must reproduce the same stress residual.
+  mechanical_physics.commit_trial_state(trial_displacement);
+  auto const next_step_residual =
+      mechanical_physics.evaluate_residual(trial_displacement);
+  residual_difference = first_trial_residual;
+  residual_difference -= next_step_residual;
+  BOOST_CHECK_SMALL(residual_difference.l2_norm(), 1.e-12);
 }
 
 BOOST_AUTO_TEST_CASE(fe_nothing)
