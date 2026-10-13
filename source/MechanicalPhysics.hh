@@ -27,7 +27,7 @@ struct MechanicalConstitutiveState
   dealii::SymmetricTensor<2, dim> stress;
   dealii::SymmetricTensor<2, dim> back_stress;
   double plastic_internal_variable = 0.;
-  double thermal_stress = 0.;
+  double thermal_strain = 0.;
 };
 
 template <int dim, int n_materials, int p_order, typename MaterialStates,
@@ -167,10 +167,9 @@ public:
 private:
   /**
    * Solve a linear system with the current mechanical matrix and return a
-   * constrained displacement vector. The nonlinear solve restores the elastic
-   * stiffness matrix before using this function for its initial guess; during
-   * subsequent KINSOL linear solves, the current matrix is the nonlinear
-   * Jacobian.
+   * constrained displacement vector. The current matrix is the elastic
+   * stiffness matrix for an elastic solve or the initial nonlinear guess, and
+   * is the current nonlinear Jacobian for subsequent KINSOL linear solves.
    */
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
   solve_linear_system(
@@ -179,9 +178,9 @@ private:
       double const tolerance) const;
 
   /**
-   * Solve the nonlinear mechanical residual with KINSOL. The elastic matrix is
-   * restored before it provides the initial guess; KINSOL then replaces it
-   * with the assembled consistent global Jacobian for its linear solves.
+   * Solve the nonlinear mechanical residual with KINSOL. The elastic matrix
+   * provides the initial guess; KINSOL then replaces it with the assembled
+   * consistent global Jacobian for its linear solves.
    */
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
   solve_nonlinear_system();

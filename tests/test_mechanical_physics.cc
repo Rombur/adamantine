@@ -1026,6 +1026,22 @@ BOOST_AUTO_TEST_CASE(thermoelastic_stress_uniform_heating)
   };
   check_stress(350.);
 
+  // The stored thermal strain must remain valid if the current stiffness
+  // differs from the stiffness used when the state was created.
+  adamantine::MechanicalConstitutiveState<3> state_with_thermal_strain;
+  state_with_thermal_strain.thermal_strain = 0.1;
+  auto const constitutive_response =
+      mechanical_physics.evaluate_constitutive_response(
+          dealii::SymmetricTensor<2, 3>(), 20., 0., 4., 5., 1., 0.5, alpha,
+          true, state_with_thermal_strain);
+  double const expected_thermal_stress = -(3. * 4. + 2. * 5.) * (0.2 - 0.1);
+  BOOST_CHECK_SMALL(
+      (constitutive_response.first.stress -
+       expected_thermal_stress * dealii::unit_symmetric_tensor<3>())
+          .norm(),
+      1.e-14);
+  BOOST_CHECK_SMALL(constitutive_response.first.thermal_strain - 0.2, 1.e-14);
+
   // Updating the temperature must apply only the thermal stress increment, not
   // the total thermal stress a second time.
   temperature = 360.;
@@ -1169,13 +1185,13 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
           state_after_residual[cell_id][q].plastic_internal_variable -
               state_before_residual[cell_id][q].plastic_internal_variable,
           1.e-14);
-      BOOST_CHECK_SMALL(state_after_residual[cell_id][q].thermal_stress -
-                            state_before_residual[cell_id][q].thermal_stress,
+      BOOST_CHECK_SMALL(state_after_residual[cell_id][q].thermal_strain -
+                            state_before_residual[cell_id][q].thermal_strain,
                         1.e-14);
     }
 
   // A second increment checks both the stored plastic history and that only
-  // the change in thermal stress is applied at the next solve.
+  // the change in thermal strain is applied at the next solve.
   double constexpr stress_increment = 0.2;
   state_with_trial_stress = mechanical_physics.get_constitutive_state();
   for (auto &cell_state : state_with_trial_stress)
