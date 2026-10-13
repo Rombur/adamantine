@@ -94,7 +94,7 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
   _mechanical_operator =
       std::make_unique<MechanicalOperator<dim, n_materials, p_order,
                                           MaterialStates, MemorySpaceType>>(
-          communicator, _material_properties, reference_temperatures);
+          communicator, _material_properties);
 
   // Create the data used to compute the stress tensor
   unsigned int const n_quad_pts = _q_collection.max_n_quadrature_points();
@@ -157,26 +157,28 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
 {
   MechanicalConstitutiveState<dim> result = state;
 
-  double const beta = (3. * lambda + 2. * mu) * alpha;
   dealii::SymmetricTensor<4, dim> stiffness_tensor =
       lambda * dealii::outer_product(dealii::unit_symmetric_tensor<dim>(),
                                      dealii::unit_symmetric_tensor<dim>()) +
       2 * mu * dealii::identity_tensor<dim>();
   dealii::SymmetricTensor<4, dim> constitutive_tangent;
 
-  // Compute the trial elastic stress from the state.
-  dealii::SymmetricTensor<2, dim> elastic_stress = state.stress;
-  elastic_stress += stiffness_tensor * strain_increment;
+  // Compute the trial elastic stress from the strain decomposition
+  // epsilon = epsilon_e + epsilon_p + epsilon_th. The stored thermal strain
+  // is the thermal strain at the beginning of the time step.
+  auto elastic_strain_increment = strain_increment;
   if (include_thermal_loading)
   {
-    // Compute the thermal stress due to the temperature change since the last
-    // time step. The rest of the thermal stress is included in the state.
-    double const current_thermal_stress =
-        beta * (temperature - reference_temperature);
-    elastic_stress -= (current_thermal_stress - state.thermal_stress) *
-                      dealii::unit_symmetric_tensor<dim>();
-    result.thermal_stress = current_thermal_stress;
+    double const current_thermal_strain =
+        alpha * (temperature - reference_temperature);
+    double const previous_thermal_strain = state.thermal_strain;
+    elastic_strain_increment -=
+        (current_thermal_strain - previous_thermal_strain) *
+        dealii::unit_symmetric_tensor<dim>();
+    result.thermal_strain = current_thermal_strain;
   }
+  dealii::SymmetricTensor<2, dim> elastic_stress = state.stress;
+  elastic_stress += stiffness_tensor * elastic_strain_increment;
 
   // Formulation based on the combined isotropic-kinematic hardening model for
   // J2 plasticity in Chapter 3 of R. Borja, Plasticity: Modeling and
@@ -274,8 +276,6 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   _thermal_dof_handler = &thermal_dof_handler;
   _temperature = temperature;
   _has_melted = has_melted;
-  _mechanical_operator->update_temperature(thermal_dof_handler, temperature,
-                                           has_melted);
   _mechanical_operator->assemble_rhs(body_forces);
 }
 
@@ -312,7 +312,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
       {
         std::vector<double> &cell_data_quad = cell_data[quad];
         cell_data_quad[0] = _state[cell_id][quad].plastic_internal_variable;
-        cell_data_quad[1] = _state[cell_id][quad].thermal_stress;
+        cell_data_quad[1] = _state[cell_id][quad].thermal_strain;
         for (unsigned int i = 0; i < n_doubles_per_quad_stress; ++i)
         {
           cell_data_quad[stress_offset + i] =
@@ -386,7 +386,7 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
       {
         _state[cell_id][quad].plastic_internal_variable =
             data_to_unpack[cell_id][quad][0];
-        _state[cell_id][quad].thermal_stress = data_to_unpack[cell_id][quad][1];
+        _state[cell_id][quad].thermal_strain = data_to_unpack[cell_id][quad][1];
         for (unsigned int i = 0; i < n_doubles_per_quad_stress; ++i)
         {
           _state[cell_id][quad].stress.access_raw_entry(i) =
@@ -415,8 +415,6 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   _thermal_dof_handler = &thermal_dof_handler;
   _temperature = temperature;
   _has_melted = has_melted;
-  _mechanical_operator->update_temperature(thermal_dof_handler, temperature,
-                                           has_melted);
   // Update the active fe indices, the plastic variables, and the displacement.
   unsigned int const n_quad_pts = _q_collection.max_n_quadrature_points();
   unsigned int cell_id = 0;
@@ -641,10 +639,6 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
       dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>;
   using KINSOL = dealii::SUNDIALS::KINSOL<VectorType>;
 
-  // A previous nonlinear solve leaves its last Jacobian in the shared system
-  // matrix. Restore the elastic matrix before computing the initial guess.
-  _mechanical_operator->ensure_elastic_matrix();
-
   // Use the elastic solution as the initial guess.
   double const linear_tolerance = 1e-12 * _mechanical_operator->rhs().l2_norm();
   auto displacement =
@@ -699,13 +693,30 @@ MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
   CALI_MARK_BEGIN("solve mechanical system");
 #endif
 
+  _mechanical_operator->ensure_elastic_matrix();
+
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
       displacement_host;
   if (_is_purely_elastic)
   {
-    double const tolerance = 1e-12 * _mechanical_operator->rhs().l2_norm();
-    displacement_host =
-        solve_linear_system(_mechanical_operator->rhs(), tolerance);
+    dealii::IndexSet const locally_owned_dofs =
+        _dof_handler.locally_owned_dofs();
+    dealii::IndexSet const locally_relevant_dofs =
+        dealii::DoFTools::extract_locally_relevant_dofs(_dof_handler);
+    dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
+        zero_displacement(locally_owned_dofs, locally_relevant_dofs,
+                          _dof_handler.get_mpi_communicator());
+    zero_displacement = 0.;
+    zero_displacement.update_ghost_values();
+
+    // For an elastic constitutive law the residual is affine in the
+    // displacement. Evaluating it at zero displacement gives the right-hand
+    // side for the unchanged elastic matrix without introducing a separate
+    // thermal load vector.
+    auto rhs = evaluate_residual(zero_displacement);
+    rhs *= -1.;
+    double const tolerance = 1e-12 * rhs.l2_norm();
+    displacement_host = solve_linear_system(rhs, tolerance);
   }
   else
   {
