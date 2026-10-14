@@ -363,7 +363,7 @@ BOOST_AUTO_TEST_CASE(elastoplastic_residual)
   auto const first_trial_residual =
       mechanical_physics.evaluate_residual(trial_displacement);
 
-  // Evaluating a trial state must not modify the state stress.
+  // Evaluating a trial state must not modify the committed stress.
   auto const stress_after_trial = mechanical_physics.get_stress_tensor();
   BOOST_TEST(stress_after_trial.size() == state_stress.size());
   for (unsigned int cell_id = 0; cell_id < state_stress.size(); ++cell_id)
@@ -736,23 +736,24 @@ BOOST_AUTO_TEST_CASE(elastoplastic_radial_return)
   double constexpr lambda = 2.;
   auto check_constitutive_tangent =
       [&](adamantine::MechanicalConstitutiveState<3> const &state,
-          dealii::SymmetricTensor<2, 3> const &strain_increment,
+          dealii::SymmetricTensor<2, 3> const &strain,
           dealii::SymmetricTensor<2, 3> const &strain_direction)
   {
-    auto const [response, constitutive_tangent] =
-        mechanical_physics.evaluate_constitutive_response(
-            strain_increment, 0., 0., lambda, mu, plastic_modulus,
-            isotropic_hardening, 0., false, state);
+    auto const response = mechanical_physics.evaluate_constitutive_response(
+        strain, 0., 0., lambda, mu, plastic_modulus, isotropic_hardening, 0.,
+        false, state);
+    auto const trial_stress = std::get<1>(response);
+    auto const constitutive_tangent = std::get<2>(response);
 
     double constexpr h = 1.e-7;
-    auto perturbed_strain = strain_increment;
+    auto perturbed_strain = strain;
     perturbed_strain += h * strain_direction;
     auto const perturbed_response =
         mechanical_physics.evaluate_constitutive_response(
             perturbed_strain, 0., 0., lambda, mu, plastic_modulus,
             isotropic_hardening, 0., false, state);
     auto const finite_difference =
-        (perturbed_response.first.stress - response.stress) / h;
+        (std::get<1>(perturbed_response) - trial_stress) / h;
     BOOST_CHECK_SMALL(
         (finite_difference - constitutive_tangent * strain_direction).norm(),
         1.e-7);
@@ -775,22 +776,45 @@ BOOST_AUTO_TEST_CASE(elastoplastic_radial_return)
   plastic_state.back_stress[0][0] = 0.02;
   plastic_state.back_stress[1][1] = -0.01;
   plastic_state.back_stress[2][2] = -0.01;
-  dealii::SymmetricTensor<2, 3> plastic_strain;
-  plastic_strain[0][0] = 0.1;
-  plastic_strain[1][1] = -0.05;
-  check_constitutive_tangent(plastic_state, plastic_strain, strain_direction);
+  dealii::SymmetricTensor<2, 3> plastic_total_strain;
+  plastic_total_strain[0][0] = 0.1;
+  plastic_total_strain[1][1] = -0.05;
+  check_constitutive_tangent(plastic_state, plastic_total_strain,
+                             strain_direction);
+
+  // The committed plastic strain must be used with the current elastic
+  // moduli when reconstructing stress; it must not depend on a stored stress
+  // value from an earlier constitutive evaluation.
+  adamantine::MechanicalConstitutiveState<3> state_with_plastic_strain;
+  state_with_plastic_strain.plastic_internal_variable = 1.;
+  state_with_plastic_strain.plastic_strain[0][0] = 0.02;
+  state_with_plastic_strain.plastic_strain[1][1] = -0.01;
+  state_with_plastic_strain.plastic_strain[2][2] = -0.01;
+  auto const response_with_plastic_strain =
+      mechanical_physics.evaluate_constitutive_response(
+          dealii::SymmetricTensor<2, 3>(), 0., 0., 4., 5., plastic_modulus,
+          isotropic_hardening, 0., false, state_with_plastic_strain);
+  auto const expected_stress_from_plastic_strain =
+      -2. * 5. * state_with_plastic_strain.plastic_strain;
+  BOOST_CHECK_SMALL((std::get<1>(response_with_plastic_strain) -
+                     expected_stress_from_plastic_strain)
+                        .norm(),
+                    1.e-14);
 
   // The documented elastic branch is chi <= kappa. In particular, chi =
   // kappa = 0 must not enter the plastic branch and form the undefined 0/0
   // flow direction.
   mechanical_physics.solve();
   auto const &state = mechanical_physics.get_constitutive_state();
-  for (auto const &cell_state : state)
-    for (auto const &value : cell_state)
+  auto const stress = mechanical_physics.get_stress_tensor();
+  BOOST_TEST(stress.size() == state.size());
+  for (unsigned int cell_id = 0; cell_id < state.size(); ++cell_id)
+    for (unsigned int q = 0; q < state[cell_id].size(); ++q)
     {
-      BOOST_CHECK_SMALL(value.stress.norm(), 1.e-14);
-      for (unsigned int i = 0; i < value.stress.n_independent_components; ++i)
-        BOOST_TEST(std::isfinite(value.stress.access_raw_entry(i)));
+      BOOST_CHECK_SMALL(stress[cell_id][q].norm(), 1.e-14);
+      for (unsigned int i = 0; i < stress[cell_id][q].n_independent_components;
+           ++i)
+        BOOST_TEST(std::isfinite(stress[cell_id][q].access_raw_entry(i)));
     }
 
   // Combined isotropic-kinematic hardening radial return, following R. I.
@@ -804,7 +828,7 @@ BOOST_AUTO_TEST_CASE(elastoplastic_radial_return)
   auto state_with_trial_stress = state;
   for (auto &cell_state : state_with_trial_stress)
     for (auto &value : cell_state)
-      value.stress = trial_stress;
+      value.plastic_strain = -trial_stress / (2. * mu);
   mechanical_physics.set_constitutive_state(state_with_trial_stress);
 
   mechanical_physics.solve();
@@ -812,9 +836,9 @@ BOOST_AUTO_TEST_CASE(elastoplastic_radial_return)
   double const returned_stress_norm =
       trial_norm - 2. * mu * plastic_increment_1;
   auto const expected_stress_1 = returned_stress_norm * flow_direction;
-  for (auto const &cell_state : state)
-    for (auto const &value : cell_state)
-      BOOST_CHECK_SMALL((value.stress - expected_stress_1).norm(), 1.e-12);
+  for (auto const &cell_stress : mechanical_physics.get_stress_tensor())
+    for (auto const &value : cell_stress)
+      BOOST_CHECK_SMALL((value - expected_stress_1).norm(), 1.e-12);
 
   // A second collinear increment exercises the stored back stress. This is a
   // regression for accidentally multiplying the kinematic update by H twice
@@ -823,7 +847,7 @@ BOOST_AUTO_TEST_CASE(elastoplastic_radial_return)
   state_with_trial_stress = mechanical_physics.get_constitutive_state();
   for (auto &cell_state : state_with_trial_stress)
     for (auto &value : cell_state)
-      value.stress += stress_increment * flow_direction;
+      value.plastic_strain -= stress_increment / (2. * mu) * flow_direction;
   mechanical_physics.set_constitutive_state(state_with_trial_stress);
 
   mechanical_physics.solve();
@@ -832,9 +856,9 @@ BOOST_AUTO_TEST_CASE(elastoplastic_radial_return)
   double const expected_stress_norm =
       returned_stress_norm + stress_increment - 2. * mu * plastic_increment_2;
   auto const expected_stress_2 = expected_stress_norm * flow_direction;
-  for (auto const &cell_state : state)
-    for (auto const &value : cell_state)
-      BOOST_CHECK_SMALL((value.stress - expected_stress_2).norm(), 1.e-12);
+  for (auto const &cell_stress : mechanical_physics.get_stress_tensor())
+    for (auto const &value : cell_stress)
+      BOOST_CHECK_SMALL((value - expected_stress_2).norm(), 1.e-12);
 }
 
 BOOST_AUTO_TEST_CASE(cell_data_transfer_refine_coarsen)
@@ -1030,17 +1054,20 @@ BOOST_AUTO_TEST_CASE(thermoelastic_stress_uniform_heating)
   // differs from the stiffness used when the state was created.
   adamantine::MechanicalConstitutiveState<3> state_with_thermal_strain;
   state_with_thermal_strain.thermal_strain = 0.1;
+  auto const previous_total_strain = state_with_thermal_strain.thermal_strain *
+                                     dealii::unit_symmetric_tensor<3>();
   auto const constitutive_response =
       mechanical_physics.evaluate_constitutive_response(
-          dealii::SymmetricTensor<2, 3>(), 20., 0., 4., 5., 1., 0.5, alpha,
-          true, state_with_thermal_strain);
+          previous_total_strain, 20., 0., 4., 5., 1., 0.5, alpha, true,
+          state_with_thermal_strain);
   double const expected_thermal_stress = -(3. * 4. + 2. * 5.) * (0.2 - 0.1);
   BOOST_CHECK_SMALL(
-      (constitutive_response.first.stress -
+      (std::get<1>(constitutive_response) -
        expected_thermal_stress * dealii::unit_symmetric_tensor<3>())
           .norm(),
       1.e-14);
-  BOOST_CHECK_SMALL(constitutive_response.first.thermal_strain - 0.2, 1.e-14);
+  BOOST_CHECK_SMALL(std::get<0>(constitutive_response).thermal_strain - 0.2,
+                    1.e-14);
 
   // Updating the temperature must apply only the thermal stress increment, not
   // the total thermal stress a second time.
@@ -1129,11 +1156,10 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
   trial_stress[1][1] = -1.;
   double const trial_norm = trial_stress.norm();
   auto const flow_direction = trial_stress / trial_norm;
-  auto const &state = mechanical_physics.get_constitutive_state();
   auto state_with_trial_stress = mechanical_physics.get_constitutive_state();
   for (auto &cell_state : state_with_trial_stress)
     for (auto &value : cell_state)
-      value.stress = trial_stress;
+      value.plastic_strain = -trial_stress / (2. * mu);
   mechanical_physics.set_constitutive_state(state_with_trial_stress);
 
   // The thermal stress is hydrostatic and therefore must not affect the J2
@@ -1151,15 +1177,16 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
   auto const expected_stress_1 =
       -beta * delta_temperature_1 * dealii::unit_symmetric_tensor<3>() +
       returned_stress_norm_1 * flow_direction;
-  for (auto const &cell_state : state)
-    for (auto const &value : cell_state)
-      BOOST_CHECK_SMALL((value.stress - expected_stress_1).norm(), 1.e-12);
+  for (auto const &cell_stress : mechanical_physics.get_stress_tensor())
+    for (auto const &value : cell_stress)
+      BOOST_CHECK_SMALL((value - expected_stress_1).norm(), 1.e-12);
 
   // Residual evaluation must use the current temperature and state while
   // leaving the state unchanged. Repeating the evaluation at the same
   // displacement must therefore produce the same residual.
   auto const state_before_residual =
       mechanical_physics.get_constitutive_state();
+  auto const stress_before_residual = mechanical_physics.get_stress_tensor();
   auto const first_residual =
       mechanical_physics.evaluate_residual(displacement);
   auto const repeated_residual =
@@ -1169,12 +1196,17 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
   BOOST_CHECK_SMALL(residual_difference.l2_norm(), 1.e-12);
   auto const &state_after_residual =
       mechanical_physics.get_constitutive_state();
+  auto const stress_after_residual = mechanical_physics.get_stress_tensor();
   for (unsigned int cell_id = 0; cell_id < state_before_residual.size();
        ++cell_id)
     for (unsigned int q = 0; q < state_before_residual[cell_id].size(); ++q)
     {
-      BOOST_CHECK_SMALL((state_after_residual[cell_id][q].stress -
-                         state_before_residual[cell_id][q].stress)
+      BOOST_CHECK_SMALL((stress_after_residual[cell_id][q] -
+                         stress_before_residual[cell_id][q])
+                            .norm(),
+                        1.e-14);
+      BOOST_CHECK_SMALL((state_after_residual[cell_id][q].plastic_strain -
+                         state_before_residual[cell_id][q].plastic_strain)
                             .norm(),
                         1.e-14);
       BOOST_CHECK_SMALL((state_after_residual[cell_id][q].back_stress -
@@ -1196,7 +1228,7 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
   state_with_trial_stress = mechanical_physics.get_constitutive_state();
   for (auto &cell_state : state_with_trial_stress)
     for (auto &value : cell_state)
-      value.stress += stress_increment * flow_direction;
+      value.plastic_strain -= stress_increment / (2. * mu) * flow_direction;
   mechanical_physics.set_constitutive_state(state_with_trial_stress);
 
   double constexpr delta_temperature_2 = 10.;
@@ -1213,9 +1245,9 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
       -beta * (delta_temperature_1 + delta_temperature_2) *
           dealii::unit_symmetric_tensor<3>() +
       returned_stress_norm_2 * flow_direction;
-  for (auto const &cell_state : state)
-    for (auto const &value : cell_state)
-      BOOST_CHECK_SMALL((value.stress - expected_stress_2).norm(), 1.e-12);
+  for (auto const &cell_stress : mechanical_physics.get_stress_tensor())
+    for (auto const &value : cell_stress)
+      BOOST_CHECK_SMALL((value - expected_stress_2).norm(), 1.e-12);
 
   // Reverse the deviatoric loading while cooling back to the reference
   // temperature. Unlike proportional loading, reversal distinguishes the
@@ -1226,7 +1258,8 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
   state_with_trial_stress = mechanical_physics.get_constitutive_state();
   for (auto &cell_state : state_with_trial_stress)
     for (auto &value : cell_state)
-      value.stress -= reverse_stress_increment * flow_direction;
+      value.plastic_strain +=
+          reverse_stress_increment / (2. * mu) * flow_direction;
   mechanical_physics.set_constitutive_state(state_with_trial_stress);
 
   temperature = 300.;
@@ -1243,7 +1276,7 @@ BOOST_AUTO_TEST_CASE(thermoelastoplastic_radial_return)
                                         reverse_stress_increment +
                                         2. * mu * reverse_plastic_increment;
   auto const expected_stress_3 = returned_stress_norm_3 * flow_direction;
-  for (auto const &cell_state : state)
-    for (auto const &value : cell_state)
-      BOOST_CHECK_SMALL((value.stress - expected_stress_3).norm(), 1.e-12);
+  for (auto const &cell_stress : mechanical_physics.get_stress_tensor())
+    for (auto const &value : cell_stress)
+      BOOST_CHECK_SMALL((value - expected_stress_3).norm(), 1.e-12);
 }
