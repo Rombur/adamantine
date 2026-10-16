@@ -150,10 +150,12 @@ MechanicalOperator<dim, n_materials, p_order, MaterialStates, MemorySpaceType>::
         const
 {
   auto const locally_owned_dofs = _dof_handler->locally_owned_dofs();
+  auto const locally_relevant_dofs =
+      dealii::DoFTools::extract_locally_relevant_dofs(*_dof_handler);
   unsigned int const dofs_per_cell =
       _dof_handler->get_fe_collection().max_dofs_per_cell();
   dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host>
-      internal_force(locally_owned_dofs, _communicator);
+      internal_force(locally_owned_dofs, locally_relevant_dofs, _communicator);
 
   dealii::hp::FEValues<dim> displacement_hp_fe_values(
       _dof_handler->get_fe_collection(), *_q_collection,

@@ -134,6 +134,10 @@ std::vector<std::vector<dealii::SymmetricTensor<2, dim>>>
 MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
                   MemorySpaceType>::get_stress_tensor() const
 {
+  // FE evaluation on locally owned cells also reads non-owned DoFs.
+  if (_old_displacement.size() > 0)
+    _old_displacement.update_ghost_values();
+
   std::vector<std::vector<dealii::SymmetricTensor<2, dim>>> stress(
       _state.size());
 
@@ -830,6 +834,10 @@ void MechanicalPhysics<dim, n_materials, p_order, MaterialStates,
         dealii::LA::distributed::Vector<double, dealii::MemorySpace::Host> const
             &incremental_displacement)
 {
+  // Material activation and mesh transfer can leave ghost values outdated.
+  if (_old_displacement.size() > 0)
+    _old_displacement.update_ghost_values();
+
   dealii::hp::FEValues<dim> displacement_hp_fe_values(
       _fe_collection, _q_collection, dealii::update_gradients);
   unsigned int const n_q_points = _q_collection.max_n_quadrature_points();
